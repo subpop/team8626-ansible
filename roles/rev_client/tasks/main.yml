@@ -1,0 +1,20 @@
+---
+# REV Client role - Install REV Hardware Client via Chocolatey
+
+- name: Install REV Hardware Client
+  chocolatey.chocolatey.win_chocolatey:
+    name: rev-hardware-client
+    state: "{{ rev_client_state }}"
+  register: rev_install
+
+- name: Display REV Hardware Client installation result
+  ansible.builtin.debug:
+    msg: "REV Hardware Client installation: {{ 'changed' if rev_install.changed else 'already installed' }}"
+
+- name: Create desktop shortcut for REV Hardware Client
+  ansible.windows.win_shortcut:
+    src: "{{ rev_client_install_path }}\\REV Hardware Client.exe"
+    dest: C:\Users\Public\Desktop\REV Hardware Client.lnk
+    description: "REV Robotics Hardware Client"
+  ignore_errors: true
+

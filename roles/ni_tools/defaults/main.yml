@@ -1,0 +1,20 @@
+---
+# NI Tools role defaults
+# Note: Update the download URL each FRC season from https://www.ni.com/en/support/downloads/drivers/download.frc-game-tools.html
+
+# FRC Game Tools download URL - UPDATE THIS FOR EACH SEASON
+# Visit: https://www.ni.com/en/support/downloads/drivers/download.frc-game-tools.html
+ni_tools_download_url: "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2025-game-tools/25.0/offline/ni-frc-2025-game-tools_25.0.0_offline.iso"
+
+# Installer filename
+ni_tools_installer_name: ni-frc-game-tools.iso
+
+# Temp path for downloads
+ni_tools_temp_path: C:\Temp\ansible_downloads
+
+# Force reinstall even if already installed
+ni_tools_force_reinstall: false
+
+# Clean up installer files after installation
+ni_tools_cleanup_installers: true
+

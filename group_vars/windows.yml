@@ -1,0 +1,24 @@
+---
+# Windows connection settings for Ansible
+# These apply to all hosts in the 'windows' group
+
+# Connection type
+ansible_connection: winrm
+
+# WinRM settings
+ansible_winrm_transport: ntlm
+ansible_winrm_port: 5986
+ansible_winrm_scheme: https
+ansible_winrm_server_cert_validation: ignore
+
+# Authentication - use ansible-vault to encrypt these values
+ansible_user: Administrator
+ansible_password: "{{ vault_windows_password | default('CHANGE_ME') }}"
+
+# Python interpreter on control node
+ansible_python_interpreter: auto_silent
+
+# Timeouts for long-running installers
+ansible_winrm_operation_timeout_sec: 120
+ansible_winrm_read_timeout_sec: 180
+

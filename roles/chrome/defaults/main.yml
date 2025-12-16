@@ -1,0 +1,9 @@
+---
+# Chrome role defaults
+
+# State: present, latest, or absent
+chrome_state: present
+
+# Ignore checksums if package has issues
+chrome_ignore_checksums: false
+

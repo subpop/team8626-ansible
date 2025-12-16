@@ -1,0 +1,21 @@
+---
+# WPILib role defaults
+
+# Version: "latest" to auto-fetch from GitHub, or specify version (e.g., "2025.1.1")
+wpilib_version: latest
+
+# FRC season year (used for install path)
+wpilib_year: "2025"
+
+# Installation path (WPILib installs to Public user by default)
+wpilib_install_path: C:\Users\Public\wpilib
+
+# Temp path for downloads
+wpilib_temp_path: C:\Temp\ansible_downloads
+
+# Force reinstall even if already installed
+wpilib_force_reinstall: false
+
+# Clean up installer files after installation
+wpilib_cleanup_installers: true
+

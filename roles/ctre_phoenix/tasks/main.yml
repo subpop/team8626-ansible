@@ -1,0 +1,59 @@
+---
+# CTRE Phoenix role - Install Phoenix Tuner X
+# Phoenix Tuner X is used to configure CTRE motor controllers
+
+- name: Ensure temp directory exists
+  ansible.windows.win_file:
+    path: "{{ phoenix_temp_path }}"
+    state: directory
+
+- name: Check if Phoenix Tuner X is already installed
+  ansible.windows.win_stat:
+    path: "{{ phoenix_install_path }}\\Phoenix Tuner.exe"
+  register: phoenix_installed
+
+- name: Get latest Phoenix Tuner X release info from GitHub
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/CrossTheRoadElec/Phoenix-Releases/releases/latest
+    return_content: true
+  register: phoenix_release
+  when: phoenix_version == "latest"
+
+- name: Set Phoenix download URL for latest version
+  ansible.builtin.set_fact:
+    phoenix_download_url: "{{ (phoenix_release.json.assets | selectattr('name', 'match', '.*Phoenix.*Tuner.*\\.exe$') | first).browser_download_url }}"
+  when: phoenix_version == "latest" and phoenix_release.json is defined
+
+- name: Download Phoenix Tuner X installer
+  ansible.windows.win_get_url:
+    url: "{{ phoenix_download_url }}"
+    dest: "{{ phoenix_temp_path }}\\PhoenixTunerX_Setup.exe"
+    timeout: 600
+  when: not phoenix_installed.stat.exists or phoenix_force_reinstall
+  register: phoenix_download
+
+- name: Install Phoenix Tuner X (silent install)
+  ansible.windows.win_package:
+    path: "{{ phoenix_temp_path }}\\PhoenixTunerX_Setup.exe"
+    arguments: /S
+    state: present
+  when: phoenix_download.changed | default(false)
+  register: phoenix_install
+
+- name: Display Phoenix installation result
+  ansible.builtin.debug:
+    msg: "Phoenix Tuner X installation: {{ 'completed' if phoenix_install.changed | default(false) else 'already installed' }}"
+
+- name: Create desktop shortcut for Phoenix Tuner X
+  ansible.windows.win_shortcut:
+    src: "{{ phoenix_install_path }}\\Phoenix Tuner.exe"
+    dest: C:\Users\Public\Desktop\Phoenix Tuner X.lnk
+    description: "CTRE Phoenix Tuner X"
+  ignore_errors: true
+
+- name: Clean up Phoenix installer
+  ansible.windows.win_file:
+    path: "{{ phoenix_temp_path }}\\PhoenixTunerX_Setup.exe"
+    state: absent
+  when: phoenix_cleanup_installers
+

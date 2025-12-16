@@ -1,0 +1,22 @@
+---
+# CTRE Phoenix role defaults
+
+# Version: "latest" to auto-fetch from GitHub, or specify version number
+phoenix_version: latest
+
+# Direct download URL (used if phoenix_version is not "latest")
+# Get URLs from: https://github.com/CrossTheRoadElec/Phoenix-Releases/releases
+phoenix_download_url: "https://github.com/CrossTheRoadElec/Phoenix-Releases/releases/latest/download/Phoenix-Tuner-X-Windows.exe"
+
+# Installation path
+phoenix_install_path: C:\Program Files (x86)\CTRE\Phoenix Tuner X
+
+# Temp path for downloads
+phoenix_temp_path: C:\Temp\ansible_downloads
+
+# Force reinstall even if already installed
+phoenix_force_reinstall: false
+
+# Clean up installer files after installation
+phoenix_cleanup_installers: true
+

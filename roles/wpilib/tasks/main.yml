@@ -1,0 +1,82 @@
+---
+# WPILib role - Install WPILib VSCode distribution
+# This is the official FRC development environment
+
+- name: Ensure temp directory exists
+  ansible.windows.win_file:
+    path: "{{ wpilib_temp_path }}"
+    state: directory
+
+- name: Check if WPILib is already installed
+  ansible.windows.win_stat:
+    path: "{{ wpilib_install_path }}\\{{ wpilib_year }}"
+  register: wpilib_installed
+
+- name: Get latest WPILib release info from GitHub
+  ansible.windows.win_uri:
+    url: "https://api.github.com/repos/wpilibsuite/allwpilib/releases/latest"
+    return_content: true
+  register: wpilib_release
+  when: wpilib_version == "latest"
+
+- name: Set WPILib version from latest release
+  ansible.builtin.set_fact:
+    wpilib_actual_version: "{{ wpilib_release.json.tag_name | regex_replace('^v', '') }}"
+  when: wpilib_version == "latest" and wpilib_release.json is defined
+
+- name: Set WPILib version from specified version
+  ansible.builtin.set_fact:
+    wpilib_actual_version: "{{ wpilib_version }}"
+  when: wpilib_version != "latest"
+
+- name: Download WPILib installer
+  ansible.windows.win_get_url:
+    url: "https://github.com/wpilibsuite/allwpilib/releases/download/v{{ wpilib_actual_version }}/WPILib_Windows-{{ wpilib_actual_version }}.iso"
+    dest: "{{ wpilib_temp_path }}\\WPILib_Windows.iso"
+    timeout: 1800  # 30 minutes for large download
+  when: not wpilib_installed.stat.exists or wpilib_force_reinstall
+  register: wpilib_download
+
+- name: Mount WPILib ISO
+  ansible.windows.win_shell: |
+    $mountResult = Mount-DiskImage -ImagePath "{{ wpilib_temp_path }}\\WPILib_Windows.iso" -PassThru
+    $driveLetter = ($mountResult | Get-Volume).DriveLetter
+    Write-Output $driveLetter
+  register: wpilib_mount
+  when: wpilib_download.changed | default(false)
+
+- name: Run WPILib installer
+  ansible.windows.win_shell: |
+    $installerPath = "{{ wpilib_mount.stdout | trim }}:\WPILibInstaller.exe"
+    # WPILib installer runs in "silent" mode with these args
+    Start-Process -FilePath $installerPath -ArgumentList "--mode unattended --installAllUsers true" -Wait -NoNewWindow
+  when: wpilib_mount.changed | default(false)
+  async: 1800  # Allow up to 30 minutes
+  poll: 30
+  register: wpilib_install
+
+- name: Unmount WPILib ISO
+  ansible.windows.win_shell: |
+    Dismount-DiskImage -ImagePath "{{ wpilib_temp_path }}\\WPILib_Windows.iso"
+  when: wpilib_mount.changed | default(false)
+  ignore_errors: true
+
+- name: Display WPILib installation result
+  ansible.builtin.debug:
+    msg: "WPILib {{ wpilib_actual_version }} installation completed"
+  when: wpilib_install.changed | default(false)
+
+- name: Create desktop shortcut for WPILib VS Code
+  ansible.windows.win_shortcut:
+    src: "{{ wpilib_install_path }}\\{{ wpilib_year }}\\vscode\\Code.exe"
+    dest: C:\Users\Public\Desktop\WPILib VS Code {{ wpilib_year }}.lnk
+    description: "WPILib VS Code {{ wpilib_year }} - FRC Development Environment"
+    icon: "{{ wpilib_install_path }}\\{{ wpilib_year }}\\vscode\\Code.exe,0"
+  ignore_errors: true
+
+- name: Clean up WPILib installer
+  ansible.windows.win_file:
+    path: "{{ wpilib_temp_path }}\\WPILib_Windows.iso"
+    state: absent
+  when: wpilib_cleanup_installers
+
