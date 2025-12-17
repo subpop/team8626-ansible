@@ -9,8 +9,24 @@ Write-Host "  FRC Team 8626 - WinRM Setup Script   " -ForegroundColor Magenta
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Remove McAfee (blocks Ansible PowerShell scripts)
+Write-Host "[1/9] Checking for McAfee antivirus..." -ForegroundColor Yellow
+$mcafeeProducts = Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -like "*McAfee*" }
+
+if ($mcafeeProducts) {
+    Write-Host "  Found McAfee products - removing..." -ForegroundColor Yellow
+    foreach ($product in $mcafeeProducts) {
+        Write-Host "    Uninstalling: $($product.Name)" -ForegroundColor Gray
+        $product.Uninstall() | Out-Null
+    }
+    Write-Host "  McAfee removed" -ForegroundColor Green
+    Write-Host "  NOTE: A reboot may be required after setup completes" -ForegroundColor Cyan
+} else {
+    Write-Host "  McAfee not found - skipping" -ForegroundColor Green
+}
+
 # Enable local Administrator account for Ansible
-Write-Host "[1/8] Enabling local Administrator account..." -ForegroundColor Yellow
+Write-Host "[2/9] Enabling local Administrator account..." -ForegroundColor Yellow
 $adminAccount = Get-LocalUser -Name "Administrator"
 if (-not $adminAccount.Enabled) {
     Enable-LocalUser -Name "Administrator"
@@ -46,22 +62,22 @@ $plain1 = $null
 $plain2 = $null
 
 # Enable WinRM service
-Write-Host "[2/8] Enabling WinRM service..." -ForegroundColor Yellow
+Write-Host "[3/9] Enabling WinRM service..." -ForegroundColor Yellow
 Set-Service -Name WinRM -StartupType Automatic
 Start-Service WinRM
 
 # Configure WinRM
-Write-Host "[3/8] Configuring WinRM settings..." -ForegroundColor Yellow
+Write-Host "[4/9] Configuring WinRM settings..." -ForegroundColor Yellow
 winrm quickconfig -quiet
 
 # Set WinRM to allow unencrypted traffic (for NTLM over HTTPS)
-Write-Host "[4/8] Setting WinRM authentication options..." -ForegroundColor Yellow
+Write-Host "[5/9] Setting WinRM authentication options..." -ForegroundColor Yellow
 winrm set winrm/config/service '@{AllowUnencrypted="false"}'
 winrm set winrm/config/service/auth '@{Basic="true"}'
 winrm set winrm/config/service/auth '@{Negotiate="true"}'
 
 # Create self-signed certificate for HTTPS
-Write-Host "[5/8] Creating self-signed certificate for HTTPS..." -ForegroundColor Yellow
+Write-Host "[6/9] Creating self-signed certificate for HTTPS..." -ForegroundColor Yellow
 $hostname = $env:COMPUTERNAME
 $cert = Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object { $_.Subject -eq "CN=$hostname" -and $_.NotAfter -gt (Get-Date) }
 
@@ -73,7 +89,7 @@ if (-not $cert) {
 }
 
 # Remove existing HTTPS listener if present
-Write-Host "[6/8] Configuring HTTPS listener..." -ForegroundColor Yellow
+Write-Host "[7/9] Configuring HTTPS listener..." -ForegroundColor Yellow
 $httpsListener = Get-ChildItem WSMan:\localhost\Listener | Where-Object { $_.Keys -contains "Transport=HTTPS" }
 if ($httpsListener) {
     Remove-Item -Path "WSMan:\localhost\Listener\$($httpsListener.Name)" -Recurse -Force
@@ -85,7 +101,7 @@ New-Item -Path WSMan:\localhost\Listener -Transport HTTPS -Address * -Certificat
 Write-Host "  Created HTTPS listener on port 5986" -ForegroundColor Green
 
 # Configure firewall rules
-Write-Host "[7/8] Configuring firewall rules..." -ForegroundColor Yellow
+Write-Host "[8/9] Configuring firewall rules..." -ForegroundColor Yellow
 
 # Remove old rules if they exist
 $existingRule = Get-NetFirewallRule -Name "WinRM-HTTPS-In" -ErrorAction SilentlyContinue
@@ -104,8 +120,13 @@ New-NetFirewallRule -Name "WinRM-HTTPS-In" `
     -Profile Domain,Private,Public | Out-Null
 Write-Host "  Firewall rule created for port 5986" -ForegroundColor Green
 
+# Enable UAC remote access for local Administrator
+Write-Host "  Enabling remote UAC for local accounts..." -ForegroundColor Yellow
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "LocalAccountTokenFilterPolicy" -Value 1 -Type DWord
+Write-Host "  LocalAccountTokenFilterPolicy enabled" -ForegroundColor Green
+
 # Set execution policy for future PowerShell scripts
-Write-Host "[8/8] Setting PowerShell execution policy..." -ForegroundColor Yellow
+Write-Host "[9/9] Setting PowerShell execution policy..." -ForegroundColor Yellow
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force -Scope LocalMachine
 
 # Verify configuration
