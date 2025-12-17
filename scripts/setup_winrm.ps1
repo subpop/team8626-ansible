@@ -5,7 +5,7 @@
 #Requires -RunAsAdministrator
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  FRC Team 8626 - WinRM Setup Script   " -ForegroundColor Pink
+Write-Host "  FRC Team 8626 - WinRM Setup Script   " -ForegroundColor Magenta
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
