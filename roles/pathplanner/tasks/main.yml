@@ -12,7 +12,7 @@
     msg: "PathPlanner installation: {{ 'changed' if pathplanner_install.changed else 'already installed' }}"
 
 - name: Create desktop shortcut for PathPlanner
-  ansible.windows.win_shortcut:
+  community.windows.win_shortcut:
     src: "{{ pathplanner_install_path }}\\PathPlanner.exe"
     dest: C:\Users\Public\Desktop\PathPlanner.lnk
     description: "FRC PathPlanner - Autonomous Path Planning"

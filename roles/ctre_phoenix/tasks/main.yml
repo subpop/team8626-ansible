@@ -45,7 +45,7 @@
     msg: "Phoenix Tuner X installation: {{ 'completed' if phoenix_install.changed | default(false) else 'already installed' }}"
 
 - name: Create desktop shortcut for Phoenix Tuner X
-  ansible.windows.win_shortcut:
+  community.windows.win_shortcut:
     src: "{{ phoenix_install_path }}\\Phoenix Tuner.exe"
     dest: C:\Users\Public\Desktop\Phoenix Tuner X.lnk
     description: "CTRE Phoenix Tuner X"

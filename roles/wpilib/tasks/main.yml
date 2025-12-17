@@ -67,7 +67,7 @@
   when: wpilib_install.changed | default(false)
 
 - name: Create desktop shortcut for WPILib VS Code
-  ansible.windows.win_shortcut:
+  community.windows.win_shortcut:
     src: "{{ wpilib_install_path }}\\{{ wpilib_year }}\\vscode\\Code.exe"
     dest: C:\Users\Public\Desktop\WPILib VS Code {{ wpilib_year }}.lnk
     description: "WPILib VS Code {{ wpilib_year }} - FRC Development Environment"
