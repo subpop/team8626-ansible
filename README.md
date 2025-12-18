@@ -76,32 +76,7 @@ all:
 
 Your Windows admin credentials should be stored securely using Ansible Vault encryption.
 
-#### Step 1: Create an Encrypted Vault File
-
-```bash
-ansible-vault create group_vars/vault.yml
-```
-
-This opens your default editor. Add your secrets:
-
-```yaml
-# group_vars/vault.yml (encrypted)
-vault_windows_password: "YourActualAdminPassword"
-```
-
-Save and close. The file is now AES-256 encrypted.
-
-#### Step 2: Update Windows Username (if needed)
-
-Edit `group_vars/windows.yml` and change the `ansible_user` if your admin account isn't "Administrator":
-
-```yaml
-ansible_user: YourAdminUsername
-```
-
-The password is already configured to pull from `vault_windows_password`.
-
-#### Step 3: Running Playbooks with Vault
+#### Step 1: Running Playbooks with Vault
 
 ```bash
 # Option A: Prompt for vault password each time
@@ -117,13 +92,13 @@ ansible-playbook site.yml --vault-password-file .vault_pass
 
 ```bash
 # Edit your encrypted vault file
-ansible-vault edit group_vars/vault.yml
+ansible-vault edit group_vars/windows/vault.yml
 
 # View contents without editing
-ansible-vault view group_vars/vault.yml
+ansible-vault view group_vars/windows/vault.yml
 
 # Change the vault password
-ansible-vault rekey group_vars/vault.yml
+ansible-vault rekey group_vars/windows/vault.yml
 
 # Encrypt an existing plaintext file
 ansible-vault encrypt somefile.yml
@@ -136,7 +111,7 @@ ansible-vault decrypt somefile.yml
 
 1. Share the vault password securely (in person, password manager, etc.)
 2. Never commit `.vault_pass` or plaintext passwords to git
-3. The encrypted `vault.yml` is safe to commit (it's in `.gitignore` by default, but can be committed if preferred)
+3. The encrypted `vault.yml` is safe to commit
 
 ## Usage
 
@@ -260,7 +235,7 @@ winrm enumerate winrm/config/Listener
 
 **"Certificate validation failed"**: Already handled by `ansible_winrm_server_cert_validation: ignore`
 
-**"Access denied"**: Check credentials in `group_vars/vault.yml` (use `ansible-vault edit group_vars/vault.yml`)
+**"Access denied"**: Check credentials in `group_vars/windows/vault.yml` (use `ansible-vault edit group_vars/vault.yml`)
 
 ### Long-Running Installs
 
