@@ -1,257 +1,150 @@
-# FRC Team 8626 - Windows Laptop Management
+# FRC Team 8626 - Windows Laptop Setup
 
-Ansible playbook for managing a "fleet" of Windows 11 laptops with FIRST Robotics Competition (FRC) software.
+PowerShell scripts for setting up Windows 11 laptops with FIRST Robotics Competition (FRC) software.
 
 ## Software Installed
 
 | Software | Description | Installation Method |
 |----------|-------------|---------------------|
+| Chocolatey | Package manager for Windows | Direct download |
+| Git | Version control | Chocolatey |
+| 7zip | File archiver | Chocolatey |
 | Google Chrome | Web browser | Chocolatey |
-| NI FRC Game Tools | Driver Station, roboRIO imaging | Direct download |
+| NI FRC Game Tools | Driver Station, roboRIO imaging | ISO download |
 | REV Hardware Client | Configure REV Robotics hardware | Chocolatey |
-| Phoenix Tuner X | Configure CTRE motor controllers | Direct download |
-| WPILib VS Code | FRC development environment | Direct download |
+| Phoenix Tuner X | Configure CTRE motor controllers | GitHub release |
+| WPILib VS Code | FRC development environment | ISO download |
 | PathPlanner | Autonomous path planning | Chocolatey |
 
-## Prerequisites
+## Quick Start
 
-### Control Node (Your Mac/Linux machine)
+### Install FRC Software
 
-1. **Install Ansible**:
-   ```bash
-   # macOS
-   brew install ansible
-   
-   # Ubuntu/Debian
-   sudo apt update && sudo apt install ansible
-   
-   # pip (any platform)
-   pip install ansible
-   ```
+1. Download `Install-FRCTools.ps1` to the Windows laptop
+2. Right-click and select **Run with PowerShell** as Administrator, or:
 
-2. **Install required Python packages**:
-   ```bash
-   pip install pywinrm
-   ```
-
-3. **Install Ansible collections**:
-   ```bash
-   ansible-galaxy collection install ansible.windows
-   ansible-galaxy collection install chocolatey.chocolatey
-   ansible-galaxy collection install community.windows
-   ```
-
-### Windows Laptops
-
-Each Windows 11 laptop needs WinRM enabled for Ansible connectivity.
-
-1. **Copy the setup script** to each laptop (via USB, network share, etc.)
-
-2. **Run as Administrator** on each laptop:
-   ```powershell
-   PowerShell -ExecutionPolicy Bypass -File setup_winrm.ps1
-   ```
-
-3. **Note the IP address** of each laptop for inventory configuration
-
-## Configuration
-
-### 1. Update Inventory
-
-Edit `inventory/hosts.yml` with your laptop IPs:
-
-```yaml
-all:
-  children:
-    windows:
-      hosts:
-        frc-laptop-01:
-          ansible_host: 192.168.1.101  # Your actual IP
-        frc-laptop-02:
-          ansible_host: 192.168.1.102
-        # ... etc
+```powershell
+# Open PowerShell as Administrator and run:
+PowerShell -ExecutionPolicy Bypass -File Install-FRCTools.ps1
 ```
 
-### 2. Configure Credentials (Using Ansible Vault)
+The script is **idempotent** - safe to run multiple times. It will skip already-installed software.
 
-Your Windows admin credentials should be stored securely using Ansible Vault encryption.
+### Installation Time
 
-#### Step 1: Running Playbooks with Vault
+| Component | Approximate Time |
+|-----------|------------------|
+| Chocolatey + common packages | 2-5 minutes |
+| Google Chrome | 1-2 minutes |
+| NI FRC Game Tools | 15-30 minutes |
+| REV Hardware Client | 2-3 minutes |
+| Phoenix Tuner X | 2-3 minutes |
+| WPILib | 10-20 minutes |
+| PathPlanner | 1-2 minutes |
+| **Total** | **35-65 minutes** |
 
-```bash
-# Option A: Prompt for vault password each time
-ansible-playbook site.yml --ask-vault-pass
+## Scripts
 
-# Option B: Use a password file (more convenient, but secure the file!)
-echo "your-vault-password" > .vault_pass
-chmod 600 .vault_pass
-ansible-playbook site.yml --vault-password-file .vault_pass
+### Install-FRCTools.ps1
+
+Main installation script that sets up all FRC software.
+
+```powershell
+# Full installation (recommended)
+PowerShell -ExecutionPolicy Bypass -File Install-FRCTools.ps1
+
+# Skip specific components
+PowerShell -ExecutionPolicy Bypass -File Install-FRCTools.ps1 -SkipNITools
+PowerShell -ExecutionPolicy Bypass -File Install-FRCTools.ps1 -SkipChrome -SkipPathPlanner
 ```
 
-#### Vault Management Commands
+**Available Skip Flags:**
+- `-SkipChocolatey` - Skip Chocolatey and common packages
+- `-SkipChrome` - Skip Google Chrome
+- `-SkipNITools` - Skip NI FRC Game Tools
+- `-SkipREVClient` - Skip REV Hardware Client
+- `-SkipPhoenix` - Skip Phoenix Tuner X
+- `-SkipWPILib` - Skip WPILib
+- `-SkipPathPlanner` - Skip PathPlanner
 
-```bash
-# Edit your encrypted vault file
-ansible-vault edit group_vars/windows/vault.yml
+### Undo-WinRMSetup.ps1
 
-# View contents without editing
-ansible-vault view group_vars/windows/vault.yml
+If you previously used the Ansible-based setup (which required WinRM remote management), this script reverts those security changes.
 
-# Change the vault password
-ansible-vault rekey group_vars/windows/vault.yml
-
-# Encrypt an existing plaintext file
-ansible-vault encrypt somefile.yml
-
-# Decrypt (removes encryption - use carefully!)
-ansible-vault decrypt somefile.yml
+```powershell
+PowerShell -ExecutionPolicy Bypass -File Undo-WinRMSetup.ps1
 ```
 
-#### Sharing with Team Members
+**This script:**
+- Removes Windows Defender exclusions for temp directories
+- Disables the local Administrator account
+- Stops and disables WinRM service
+- Removes the WinRM HTTPS listener (port 5986)
+- Removes the self-signed certificate
+- Removes the firewall rule for WinRM
+- Resets LocalAccountTokenFilterPolicy
 
-1. Share the vault password securely (in person, password manager, etc.)
-2. Never commit `.vault_pass` or plaintext passwords to git
-3. The encrypted `vault.yml` is safe to commit
+## What Gets Installed
 
-## Usage
+### Desktop Shortcuts
 
-### Run Full Playbook
+After installation, the following shortcuts appear on the Public Desktop:
+- WPILib VS Code 2025
+- REV Hardware Client
+- Phoenix Tuner X
+- PathPlanner
 
-```bash
-# Configure all laptops with all software (with vault password prompt)
-ansible-playbook site.yml --ask-vault-pass
+### Windows Configuration
 
-# Or if using a vault password file
-ansible-playbook site.yml --vault-password-file .vault_pass
-```
-
-### Run Specific Roles
-
-```bash
-# Install only Chrome
-ansible-playbook site.yml --tags chrome --ask-vault-pass
-
-# Install only FRC core tools (NI + WPILib)
-ansible-playbook site.yml --tags frc_core --ask-vault-pass
-
-# Install only hardware tools (REV + CTRE)
-ansible-playbook site.yml --tags hardware --ask-vault-pass
-```
-
-### Target Specific Laptops
-
-```bash
-# Run on single laptop
-ansible-playbook site.yml --limit frc-laptop-01 --ask-vault-pass
-
-# Run on multiple specific laptops
-ansible-playbook site.yml --limit "frc-laptop-01,frc-laptop-03" --ask-vault-pass
-```
-
-### Test Connectivity
-
-```bash
-# Ping all Windows hosts
-ansible windows -m win_ping --ask-vault-pass
-
-# Get Windows facts
-ansible windows -m setup --ask-vault-pass
-```
-
-## Available Tags
-
-| Tag | Description |
-|-----|-------------|
-| `common` | Chocolatey and base configuration |
-| `chrome` / `browsers` | Google Chrome |
-| `ni_tools` / `ni` | NI FRC Game Tools |
-| `rev_client` / `rev` | REV Hardware Client |
-| `ctre_phoenix` / `ctre` / `phoenix` | Phoenix Tuner X |
-| `wpilib` | WPILib VS Code |
-| `pathplanner` / `autonomous` | PathPlanner |
-| `frc_core` | NI Tools + WPILib |
-| `hardware` | REV + CTRE tools |
-
-## Directory Structure
-
-```
-team8626-ansible/
-├── ansible.cfg              # Ansible configuration
-├── site.yml                 # Main playbook
-├── .vault_pass              # Vault password file (git-ignored, optional)
-├── inventory/
-│   └── hosts.yml            # Laptop inventory
-├── group_vars/
-│   ├── windows.yml          # Windows connection settings
-│   └── vault.yml            # Encrypted secrets (create with ansible-vault)
-├── roles/
-│   ├── common/              # Chocolatey + base config
-│   ├── chrome/              # Google Chrome
-│   ├── ni_tools/            # NI FRC Game Tools
-│   ├── rev_client/          # REV Hardware Client
-│   ├── ctre_phoenix/        # Phoenix Tuner X
-│   ├── wpilib/              # WPILib VS Code
-│   └── pathplanner/         # PathPlanner
-└── scripts/
-    └── setup_winrm.ps1      # WinRM bootstrap script
-```
-
-## Customization
-
-### Changing Software Versions
-
-Each role has a `defaults/main.yml` file with configurable variables:
-
-```yaml
-# roles/wpilib/defaults/main.yml
-wpilib_version: latest    # or "2025.1.1"
-wpilib_year: "2025"
-
-# roles/ni_tools/defaults/main.yml  
-ni_tools_download_url: "https://..."  # Update for each season
-```
-
-### Adding New Software
-
-1. Create a new role directory: `roles/new_software/`
-2. Add `tasks/main.yml` and `defaults/main.yml`
-3. Include the role in `site.yml`
-
-## Troubleshooting
-
-### Connection Issues
-
-```bash
-# Test WinRM connectivity
-ansible windows -m win_ping -vvv
-
-# Check if WinRM is running on Windows
-winrm enumerate winrm/config/Listener
-```
-
-### Common Errors
-
-**"Connection refused"**: WinRM not enabled. Run `setup_winrm.ps1` on the target.
-
-**"Certificate validation failed"**: Already handled by `ansible_winrm_server_cert_validation: ignore`
-
-**"Access denied"**: Check credentials in `group_vars/windows/vault.yml` (use `ansible-vault edit group_vars/vault.yml`)
-
-### Long-Running Installs
-
-NI Game Tools and WPILib are large installers. If timeouts occur:
-
-```yaml
-# Increase in group_vars/windows.yml
-ansible_winrm_operation_timeout_sec: 300
-ansible_winrm_read_timeout_sec: 360
-```
+The script also:
+- Adds Windows Defender exclusions for FRC tool directories
+- Enables Developer Mode (helpful for FRC development)
 
 ## Updating for New FRC Season
 
-1. Update `roles/ni_tools/defaults/main.yml` with new NI download URL
-2. Update `roles/wpilib/defaults/main.yml` with new year
-3. Re-run playbook: `ansible-playbook site.yml --tags frc_core --ask-vault-pass`
+Edit the configuration section at the top of `Install-FRCTools.ps1`:
+
+```powershell
+$Config = @{
+    # FRC Season Year
+    Year = "2025"
+    
+    # NI FRC Game Tools - UPDATE THIS URL EACH SEASON
+    # Get from: https://www.ni.com/en/support/downloads/drivers/download.frc-game-tools.html
+    NIToolsUrl = "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2025-game-tools/25.0/offline/ni-frc-2025-game-tools_25.0.0_offline.iso"
+    
+    # ... other settings
+}
+```
+
+Then re-run the script on each laptop.
+
+## Troubleshooting
+
+### Script Won't Run
+
+```powershell
+# If you get an execution policy error, run:
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+```
+
+### NI Game Tools Download Fails
+
+The NI download is ~2GB and may timeout on slow connections. If it fails:
+1. Download the ISO manually from [NI's website](https://www.ni.com/en/support/downloads/drivers/download.frc-game-tools.html)
+2. Place it at `C:\Temp\FRC_Downloads\ni-frc-game-tools.iso`
+3. Re-run the script
+
+### WPILib Download Fails
+
+Similar to NI tools, you can manually download:
+1. Get the ISO from [WPILib GitHub Releases](https://github.com/wpilibsuite/allwpilib/releases)
+2. Place it at `C:\Temp\FRC_Downloads\WPILib_Windows.iso`
+3. Re-run the script
+
+### Reboot Required
+
+Some components (especially NI Game Tools) may require a reboot. The script will notify you if a reboot is pending.
 
 ## License
 
@@ -263,4 +156,3 @@ For FRC-specific questions:
 - [WPILib Documentation](https://docs.wpilib.org/)
 - [FIRST Robotics](https://www.firstinspires.org/robotics/frc)
 - [Chief Delphi Forums](https://www.chiefdelphi.com/)
-

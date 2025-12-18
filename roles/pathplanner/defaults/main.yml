@@ -1,9 +1,0 @@
----
-# PathPlanner role defaults
-
-# State: present, latest, or absent
-pathplanner_state: present
-
-# Default installation path (Chocolatey installs here)
-pathplanner_install_path: C:\Program Files\PathPlanner
-

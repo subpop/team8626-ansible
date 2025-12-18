@@ -1,9 +1,0 @@
----
-# REV Client role defaults
-
-# State: present, latest, or absent
-rev_client_state: present
-
-# Default installation path
-rev_client_install_path: C:\Program Files\REV Robotics\REV Hardware Client
-
