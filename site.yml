@@ -23,7 +23,7 @@
 
     - name: Verify Windows version
       ansible.builtin.debug:
-        msg: "Windows Version: {{ ansible_os_name | default('Unknown') }} - {{ ansible_os_version | default('Unknown') }}"
+        msg: "Windows Version: {{ ansible_facts['os_name'] | default('Unknown') }} - {{ ansible_facts['os_version'] | default('Unknown') }}"
 
   roles:
     - role: common
