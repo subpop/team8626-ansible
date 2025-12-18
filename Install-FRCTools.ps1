@@ -15,6 +15,7 @@ param(
     [switch]$SkipWPILib,
     [switch]$SkipPathPlanner,
     [switch]$SkipBookmarks,
+    [switch]$SkipWallpaper,
     [switch]$CleanupInstallers = $true
 )
 
@@ -47,6 +48,11 @@ $Config = @{
     
     # Common packages to install via Chocolatey
     CommonPackages = @("git", "7zip")
+    
+    # Desktop Wallpaper
+    # Update this URL if the repo or branch changes
+    WallpaperUrl = "https://raw.githubusercontent.com/subpop/team8626-ansible/main/Cyber%2BSailors_Desktop.png"
+    WallpaperPath = "C:\Windows\Web\Wallpaper\FRC\Cyber+Sailors_Desktop.png"
     
     # FRC Resource Bookmarks for Chrome and Edge
     FRCBookmarks = @(
@@ -558,6 +564,97 @@ function Install-BrowserBookmarks {
     }
 }
 
+function Set-DesktopWallpaper {
+    Write-Info "Setting desktop wallpaper..."
+    
+    # Create directory for wallpaper if it doesn't exist
+    $wallpaperDir = Split-Path $Config.WallpaperPath -Parent
+    if (-not (Test-Path $wallpaperDir)) {
+        New-Item -ItemType Directory -Path $wallpaperDir -Force | Out-Null
+    }
+    
+    # Download wallpaper if not already present
+    if (-not (Test-Path $Config.WallpaperPath)) {
+        Write-Info "Downloading team wallpaper..."
+        try {
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -Uri $Config.WallpaperUrl -OutFile $Config.WallpaperPath -UseBasicParsing
+            $ProgressPreference = 'Continue'
+            Write-Success "Wallpaper downloaded"
+        } catch {
+            Write-Warning "Failed to download wallpaper: $_"
+            return
+        }
+    } else {
+        Write-Info "Wallpaper already exists"
+    }
+    
+    # Set wallpaper for all users via registry (Default User profile)
+    try {
+        # Set wallpaper style (2 = Stretch, 10 = Fill, 6 = Fit, 0 = Center, 22 = Span)
+        $wallpaperStyle = "10"  # Fill
+        $tileWallpaper = "0"
+        
+        # Update Default User profile (affects new users)
+        $defaultUserNtUser = "C:\Users\Default\NTUSER.DAT"
+        if (Test-Path $defaultUserNtUser) {
+            reg load "HKU\DefaultUser" $defaultUserNtUser 2>$null
+            reg add "HKU\DefaultUser\Control Panel\Desktop" /v Wallpaper /t REG_SZ /d $Config.WallpaperPath /f 2>$null
+            reg add "HKU\DefaultUser\Control Panel\Desktop" /v WallpaperStyle /t REG_SZ /d $wallpaperStyle /f 2>$null
+            reg add "HKU\DefaultUser\Control Panel\Desktop" /v TileWallpaper /t REG_SZ /d $tileWallpaper /f 2>$null
+            reg unload "HKU\DefaultUser" 2>$null
+        }
+        
+        # Update all existing user profiles
+        $userProfiles = Get-ChildItem "C:\Users" -Directory | Where-Object {
+            $_.Name -notin @("Public", "Default", "Default User", "All Users") -and
+            -not $_.Name.StartsWith(".")
+        }
+        
+        foreach ($userProfile in $userProfiles) {
+            $ntUserPath = Join-Path $userProfile.FullName "NTUSER.DAT"
+            if (Test-Path $ntUserPath) {
+                $sid = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*" | 
+                    Where-Object { $_.ProfileImagePath -eq $userProfile.FullName }).PSChildName
+                
+                if ($sid) {
+                    # Check if profile is loaded (user logged in)
+                    if (Test-Path "Registry::HKU\$sid") {
+                        Set-ItemProperty -Path "Registry::HKU\$sid\Control Panel\Desktop" -Name "Wallpaper" -Value $Config.WallpaperPath -ErrorAction SilentlyContinue
+                        Set-ItemProperty -Path "Registry::HKU\$sid\Control Panel\Desktop" -Name "WallpaperStyle" -Value $wallpaperStyle -ErrorAction SilentlyContinue
+                        Set-ItemProperty -Path "Registry::HKU\$sid\Control Panel\Desktop" -Name "TileWallpaper" -Value $tileWallpaper -ErrorAction SilentlyContinue
+                    } else {
+                        # Load the user's hive and update
+                        reg load "HKU\TempUser" $ntUserPath 2>$null
+                        reg add "HKU\TempUser\Control Panel\Desktop" /v Wallpaper /t REG_SZ /d $Config.WallpaperPath /f 2>$null
+                        reg add "HKU\TempUser\Control Panel\Desktop" /v WallpaperStyle /t REG_SZ /d $wallpaperStyle /f 2>$null
+                        reg add "HKU\TempUser\Control Panel\Desktop" /v TileWallpaper /t REG_SZ /d $tileWallpaper /f 2>$null
+                        reg unload "HKU\TempUser" 2>$null
+                    }
+                }
+            }
+        }
+        
+        # Update current user's wallpaper immediately using SystemParametersInfo
+        Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public class Wallpaper {
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+}
+"@ -ErrorAction SilentlyContinue
+        
+        # SPI_SETDESKWALLPAPER = 0x0014, SPIF_UPDATEINIFILE = 0x01, SPIF_SENDCHANGE = 0x02
+        [Wallpaper]::SystemParametersInfo(0x0014, 0, $Config.WallpaperPath, 0x03) | Out-Null
+        
+        Write-Success "Desktop wallpaper set for all users"
+    } catch {
+        Write-Warning "Failed to set wallpaper: $_"
+    }
+}
+
 function Set-WindowsConfiguration {
     Write-Banner "Configuring Windows Settings"
     
@@ -589,6 +686,11 @@ function Set-WindowsConfiguration {
     } else {
         Write-Info "Developer Mode already enabled"
     }
+    
+    # Set desktop wallpaper
+    if (-not $SkipWallpaper) {
+        Set-DesktopWallpaper
+    }
 }
 
 # ============================================================================
@@ -607,6 +709,7 @@ Write-Host "  - Phoenix Tuner X" -ForegroundColor White
 Write-Host "  - WPILib VS Code" -ForegroundColor White
 Write-Host "  - PathPlanner" -ForegroundColor White
 Write-Host "  - Browser Bookmarks (Chrome & Edge)" -ForegroundColor White
+Write-Host "  - Team Desktop Wallpaper" -ForegroundColor White
 Write-Host ""
 
 # Ensure temp directory exists
@@ -641,9 +744,11 @@ Write-Host "  - Phoenix Tuner X" -ForegroundColor Green
 Write-Host "  - WPILib VS Code" -ForegroundColor Green
 Write-Host "  - PathPlanner" -ForegroundColor Green
 Write-Host "  - FRC Browser Bookmarks" -ForegroundColor Green
+Write-Host "  - Team Desktop Wallpaper" -ForegroundColor Green
 Write-Host ""
 Write-Host "Desktop shortcuts have been created." -ForegroundColor White
 Write-Host "FRC Resources bookmarks added to Chrome and Edge." -ForegroundColor White
+Write-Host "Team wallpaper has been applied to all user profiles." -ForegroundColor White
 
 if ($rebootRequired) {
     Write-Host ""
