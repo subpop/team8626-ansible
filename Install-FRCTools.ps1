@@ -14,6 +14,7 @@ param(
     [switch]$SkipPhoenix,
     [switch]$SkipWPILib,
     [switch]$SkipPathPlanner,
+    [switch]$SkipBookmarks,
     [switch]$CleanupInstallers = $true
 )
 
@@ -46,6 +47,19 @@ $Config = @{
     
     # Common packages to install via Chocolatey
     CommonPackages = @("git", "7zip")
+    
+    # FRC Resource Bookmarks for Chrome and Edge
+    FRCBookmarks = @(
+        @{ Name = "WPILib Documentation"; Url = "https://docs.wpilib.org" }
+        @{ Name = "W3Schools"; Url = "https://www.w3schools.com" }
+        @{ Name = "REV Robotics Docs"; Url = "https://docs.revrobotics.com" }
+        @{ Name = "CTRE Phoenix Docs"; Url = "https://v6.docs.ctr-electronics.com" }
+        @{ Name = "PathPlanner Docs"; Url = "https://pathplanner.dev/home.html" }
+        @{ Name = "Chief Delphi"; Url = "https://www.chiefdelphi.com" }
+        @{ Name = "The Blue Alliance"; Url = "https://www.thebluealliance.com" }
+        @{ Name = "FRC Q&A"; Url = "https://frc-qa.firstinspires.org" }
+        @{ Name = "PhotonVision Docs"; Url = "https://docs.photonvision.org" }
+    )
 }
 
 # ============================================================================
@@ -121,7 +135,7 @@ function Get-GitHubLatestRelease {
 # ============================================================================
 
 function Install-Chocolatey {
-    Write-Step "1/8" "Installing Chocolatey package manager..."
+    Write-Step "1/9" "Installing Chocolatey package manager..."
     
     if (Test-Path "C:\ProgramData\chocolatey\bin\choco.exe") {
         Write-Success "Chocolatey is already installed"
@@ -145,7 +159,7 @@ function Install-Chocolatey {
 }
 
 function Install-CommonPackages {
-    Write-Step "2/8" "Installing common utilities (Git, 7zip)..."
+    Write-Step "2/9" "Installing common utilities (Git, 7zip)..."
     
     foreach ($package in $Config.CommonPackages) {
         $installed = choco list --local-only $package 2>$null | Select-String "^$package\s"
@@ -160,7 +174,7 @@ function Install-CommonPackages {
 }
 
 function Install-Chrome {
-    Write-Step "3/8" "Installing Google Chrome..."
+    Write-Step "3/9" "Installing Google Chrome..."
     
     $installed = choco list --local-only googlechrome 2>$null | Select-String "^googlechrome\s"
     if ($installed) {
@@ -174,7 +188,7 @@ function Install-Chrome {
 }
 
 function Install-NIGameTools {
-    Write-Step "4/8" "Installing NI FRC Game Tools..."
+    Write-Step "4/9" "Installing NI FRC Game Tools..."
     
     # Check if already installed via registry
     $niInstalled = Get-ItemProperty "HKLM:\SOFTWARE\National Instruments\Common\Installer" -ErrorAction SilentlyContinue
@@ -228,7 +242,7 @@ function Install-NIGameTools {
 }
 
 function Install-REVClient {
-    Write-Step "5/8" "Installing REV Hardware Client..."
+    Write-Step "5/9" "Installing REV Hardware Client..."
     
     $installed = choco list --local-only rev-hardware-client 2>$null | Select-String "^rev-hardware-client\s"
     if ($installed) {
@@ -245,7 +259,7 @@ function Install-REVClient {
 }
 
 function Install-PhoenixTunerX {
-    Write-Step "6/8" "Installing Phoenix Tuner X..."
+    Write-Step "6/9" "Installing Phoenix Tuner X..."
     
     $phoenixExe = Join-Path $Config.PhoenixInstallPath "Phoenix Tuner.exe"
     if (Test-Path $phoenixExe) {
@@ -297,7 +311,7 @@ function Install-PhoenixTunerX {
 }
 
 function Install-WPILib {
-    Write-Step "7/8" "Installing WPILib..."
+    Write-Step "7/9" "Installing WPILib..."
     
     $wpilibPath = Join-Path $Config.WPILibInstallPath $Config.Year
     if (Test-Path $wpilibPath) {
@@ -364,7 +378,7 @@ function Install-WPILib {
 }
 
 function Install-PathPlanner {
-    Write-Step "8/8" "Installing PathPlanner..."
+    Write-Step "8/9" "Installing PathPlanner..."
     
     $installed = choco list --local-only pathplanner 2>$null | Select-String "^pathplanner\s"
     if ($installed) {
@@ -378,6 +392,170 @@ function Install-PathPlanner {
     # Create desktop shortcut
     $pathplannerExe = Join-Path $Config.PathPlannerInstallPath "PathPlanner.exe"
     New-DesktopShortcut -TargetPath $pathplannerExe -ShortcutName "PathPlanner" -Description "FRC PathPlanner - Autonomous Path Planning"
+}
+
+function Install-BrowserBookmarks {
+    Write-Step "9/9" "Installing FRC browser bookmarks..."
+    
+    # Browser configurations (Chromium-based browsers share the same bookmark format)
+    $browsers = @(
+        @{ Name = "Chrome"; ProfilePath = "Google\Chrome\User Data" }
+        @{ Name = "Edge"; ProfilePath = "Microsoft\Edge\User Data" }
+    )
+    
+    # Get all user profile directories
+    $userProfiles = Get-ChildItem "C:\Users" -Directory | Where-Object {
+        $_.Name -notin @("Public", "Default", "Default User", "All Users") -and
+        -not $_.Name.StartsWith(".")
+    }
+    
+    $bookmarksAdded = $false
+    
+    foreach ($userProfile in $userProfiles) {
+        foreach ($browser in $browsers) {
+            $browserDataPath = Join-Path $userProfile.FullName "AppData\Local\$($browser.ProfilePath)"
+            $bookmarkFile = Join-Path $browserDataPath "Default\Bookmarks"
+            $bookmarkDir = Split-Path $bookmarkFile -Parent
+            
+            # Skip if browser profile doesn't exist (browser never launched)
+            if (-not (Test-Path $bookmarkDir)) {
+                continue
+            }
+            
+            try {
+                # Check if bookmark file is locked (browser is running)
+                $fileStream = $null
+                if (Test-Path $bookmarkFile) {
+                    try {
+                        $fileStream = [System.IO.File]::Open($bookmarkFile, 'Open', 'ReadWrite', 'None')
+                        $fileStream.Close()
+                    } catch {
+                        Write-Info "Skipping $($browser.Name) for $($userProfile.Name) - browser may be running"
+                        continue
+                    }
+                }
+                
+                # Load existing bookmarks or create new structure
+                if (Test-Path $bookmarkFile) {
+                    $bookmarkData = Get-Content $bookmarkFile -Raw | ConvertFrom-Json
+                } else {
+                    # Create new bookmark structure
+                    $bookmarkData = [PSCustomObject]@{
+                        checksum = ""
+                        roots = [PSCustomObject]@{
+                            bookmark_bar = [PSCustomObject]@{
+                                children = @()
+                                date_added = [string]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() * 1000)
+                                date_last_used = "0"
+                                date_modified = "0"
+                                guid = [guid]::NewGuid().ToString()
+                                id = "1"
+                                name = "Bookmarks bar"
+                                type = "folder"
+                            }
+                            other = [PSCustomObject]@{
+                                children = @()
+                                date_added = [string]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() * 1000)
+                                date_last_used = "0"
+                                date_modified = "0"
+                                guid = [guid]::NewGuid().ToString()
+                                id = "2"
+                                name = "Other bookmarks"
+                                type = "folder"
+                            }
+                            synced = [PSCustomObject]@{
+                                children = @()
+                                date_added = [string]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() * 1000)
+                                date_last_used = "0"
+                                date_modified = "0"
+                                guid = [guid]::NewGuid().ToString()
+                                id = "3"
+                                name = "Mobile bookmarks"
+                                type = "folder"
+                            }
+                        }
+                        version = 1
+                    }
+                }
+                
+                # Check if FRC Resources folder already exists
+                $bookmarkBar = $bookmarkData.roots.bookmark_bar
+                $frcFolder = $bookmarkBar.children | Where-Object { $_.name -eq "FRC Resources" -and $_.type -eq "folder" }
+                
+                if ($frcFolder) {
+                    Write-Info "$($browser.Name) bookmarks already configured for $($userProfile.Name)"
+                    continue
+                }
+                
+                # Get the next available ID
+                $maxId = 3
+                function Get-MaxId($node) {
+                    if ($node.id) {
+                        $id = [int]$node.id
+                        if ($id -gt $script:maxId) { $script:maxId = $id }
+                    }
+                    if ($node.children) {
+                        foreach ($child in $node.children) {
+                            Get-MaxId $child
+                        }
+                    }
+                }
+                Get-MaxId $bookmarkData.roots.bookmark_bar
+                Get-MaxId $bookmarkData.roots.other
+                if ($bookmarkData.roots.synced) { Get-MaxId $bookmarkData.roots.synced }
+                
+                $nextId = $maxId + 1
+                $timestamp = [string]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() * 1000)
+                
+                # Create FRC Resources folder with bookmarks
+                $frcBookmarkChildren = @()
+                foreach ($bookmark in $Config.FRCBookmarks) {
+                    $nextId++
+                    $frcBookmarkChildren += [PSCustomObject]@{
+                        date_added = $timestamp
+                        date_last_used = "0"
+                        guid = [guid]::NewGuid().ToString()
+                        id = [string]$nextId
+                        name = $bookmark.Name
+                        type = "url"
+                        url = $bookmark.Url
+                    }
+                }
+                
+                $nextId++
+                $frcResourcesFolder = [PSCustomObject]@{
+                    children = $frcBookmarkChildren
+                    date_added = $timestamp
+                    date_last_used = "0"
+                    date_modified = $timestamp
+                    guid = [guid]::NewGuid().ToString()
+                    id = [string]$nextId
+                    name = "FRC Resources"
+                    type = "folder"
+                }
+                
+                # Add FRC Resources folder to bookmark bar
+                $bookmarkBar.children = @($frcResourcesFolder) + @($bookmarkBar.children)
+                
+                # Update date_modified on bookmark bar
+                $bookmarkBar.date_modified = $timestamp
+                
+                # Save bookmarks
+                $bookmarkJson = $bookmarkData | ConvertTo-Json -Depth 20
+                Set-Content -Path $bookmarkFile -Value $bookmarkJson -Encoding UTF8
+                
+                Write-Success "Added FRC bookmarks to $($browser.Name) for $($userProfile.Name)"
+                $bookmarksAdded = $true
+                
+            } catch {
+                Write-Info "Could not update $($browser.Name) bookmarks for $($userProfile.Name): $_"
+            }
+        }
+    }
+    
+    if (-not $bookmarksAdded) {
+        Write-Info "No browser profiles found or all already configured"
+    }
 }
 
 function Set-WindowsConfiguration {
@@ -428,6 +606,7 @@ Write-Host "  - REV Hardware Client" -ForegroundColor White
 Write-Host "  - Phoenix Tuner X" -ForegroundColor White
 Write-Host "  - WPILib VS Code" -ForegroundColor White
 Write-Host "  - PathPlanner" -ForegroundColor White
+Write-Host "  - Browser Bookmarks (Chrome & Edge)" -ForegroundColor White
 Write-Host ""
 
 # Ensure temp directory exists
@@ -444,6 +623,7 @@ if (-not $SkipREVClient) { Install-REVClient }
 if (-not $SkipPhoenix) { Install-PhoenixTunerX }
 if (-not $SkipWPILib) { Install-WPILib }
 if (-not $SkipPathPlanner) { Install-PathPlanner }
+if (-not $SkipBookmarks) { Install-BrowserBookmarks }
 
 # Configure Windows settings
 Set-WindowsConfiguration
@@ -460,8 +640,10 @@ Write-Host "  - REV Hardware Client" -ForegroundColor Green
 Write-Host "  - Phoenix Tuner X" -ForegroundColor Green
 Write-Host "  - WPILib VS Code" -ForegroundColor Green
 Write-Host "  - PathPlanner" -ForegroundColor Green
+Write-Host "  - FRC Browser Bookmarks" -ForegroundColor Green
 Write-Host ""
 Write-Host "Desktop shortcuts have been created." -ForegroundColor White
+Write-Host "FRC Resources bookmarks added to Chrome and Edge." -ForegroundColor White
 
 if ($rebootRequired) {
     Write-Host ""
