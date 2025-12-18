@@ -153,7 +153,7 @@ Write-Host "WinRM HTTPS Port: 5986" -ForegroundColor White
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "1. Update inventory/hosts.yml with this machine's IP address" -ForegroundColor White
-Write-Host "2. Update group_vars/windows.yml with admin credentials" -ForegroundColor White
+Write-Host "2. Update group_vars/windows/vars.yml with admin credentials" -ForegroundColor White
 Write-Host "3. Test connection: ansible windows -m win_ping" -ForegroundColor White
 Write-Host ""
 
