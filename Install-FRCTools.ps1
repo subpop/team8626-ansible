@@ -32,7 +32,7 @@ $Config = @{
     
     # NI FRC Game Tools
     # Update URL each season from: https://www.ni.com/en/support/downloads/drivers/download.frc-game-tools.html
-    NIToolsUrl = "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2025-game-tools/25.0/offline/ni-frc-2025-game-tools_25.0.0_offline.iso"
+    NIToolsUrl = "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2025-game-tools/25.0/online/ni-frc-2025-game-tools_25.0_online.exe"
     
     # WPILib (uses GitHub API for latest)
     WPILibInstallPath = "C:\Users\Public\wpilib"
@@ -208,41 +208,27 @@ function Install-NIGameTools {
         New-Item -ItemType Directory -Path $Config.TempPath -Force | Out-Null
     }
     
-    $isoPath = Join-Path $Config.TempPath "ni-frc-game-tools.iso"
+    $installerPath = Join-Path $Config.TempPath "ni-frc-game-tools_online.exe"
     
-    # Download ISO if not present
-    if (-not (Test-Path $isoPath)) {
-        Write-Info "Downloading NI FRC Game Tools (~2GB, this may take a while)..."
-        $ProgressPreference = 'SilentlyContinue'  # Speed up download
-        Invoke-WebRequest -Uri $Config.NIToolsUrl -OutFile $isoPath -UseBasicParsing
+    # Download online installer if not present
+    if (-not (Test-Path $installerPath)) {
+        Write-Info "Downloading NI FRC Game Tools online installer..."
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $Config.NIToolsUrl -OutFile $installerPath -UseBasicParsing
         $ProgressPreference = 'Continue'
         Write-Success "Download complete"
     } else {
-        Write-Info "Using cached ISO file"
+        Write-Info "Using cached installer"
     }
     
-    # Mount ISO
-    Write-Info "Mounting ISO..."
-    $mountResult = Mount-DiskImage -ImagePath $isoPath -PassThru
-    $driveLetter = ($mountResult | Get-Volume).DriveLetter
-    
-    # Find and run installer
-    Write-Info "Installing NI FRC Game Tools (this takes 15-30 minutes)..."
-    $installer = Get-ChildItem -Path "${driveLetter}:\" -Filter "*.exe" -Recurse | Select-Object -First 1
-    if ($installer) {
-        Start-Process -FilePath $installer.FullName -ArgumentList "/q /AcceptLicenses yes /r:n" -Wait -NoNewWindow
-        Write-Success "NI FRC Game Tools installed"
-    } else {
-        Write-Warning "Installer not found in ISO"
-    }
-    
-    # Unmount ISO
-    Write-Info "Unmounting ISO..."
-    Dismount-DiskImage -ImagePath $isoPath | Out-Null
+    # Run installer
+    Write-Info "Installing NI FRC Game Tools (this takes 15-30 minutes, requires internet)..."
+    Start-Process -FilePath $installerPath -ArgumentList "/q /AcceptLicenses yes /r:n" -Wait -NoNewWindow
+    Write-Success "NI FRC Game Tools installed"
     
     # Cleanup
     if ($CleanupInstallers) {
-        Remove-Item $isoPath -Force -ErrorAction SilentlyContinue
+        Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
         Write-Info "Cleaned up installer files"
     }
 }
@@ -267,52 +253,36 @@ function Install-REVClient {
 function Install-PhoenixTunerX {
     Write-Step "6/9" "Installing Phoenix Tuner X..."
     
-    $phoenixExe = Join-Path $Config.PhoenixInstallPath "Phoenix Tuner.exe"
-    if (Test-Path $phoenixExe) {
-        Write-Success "Phoenix Tuner X is already installed"
-        New-DesktopShortcut -TargetPath $phoenixExe -ShortcutName "Phoenix Tuner X" -Description "CTRE Phoenix Tuner X"
+    # Check if winget is available
+    $winget = Get-Command winget -ErrorAction SilentlyContinue
+    if (-not $winget) {
+        Write-Warning "winget is not available. Please install Phoenix Tuner X manually from the Microsoft Store:"
+        Write-Warning "https://apps.microsoft.com/detail/9nvv4pwdw27z"
         return
     }
     
-    # Ensure temp directory exists
-    if (-not (Test-Path $Config.TempPath)) {
-        New-Item -ItemType Directory -Path $Config.TempPath -Force | Out-Null
+    # Check if already installed via winget
+    $installed = winget list --id 9NVVV4PWDW27Z --source msstore 2>$null
+    if ($LASTEXITCODE -eq 0 -and $installed -match "Phoenix") {
+        Write-Success "Phoenix Tuner X is already installed"
+        return
     }
     
-    # Get latest release from GitHub
-    Write-Info "Fetching latest Phoenix Tuner X release..."
-    $release = Get-GitHubLatestRelease -Repo "CrossTheRoadElec/Phoenix-Releases"
+    # Install from Microsoft Store via winget
+    # https://apps.microsoft.com/detail/9nvv4pwdw27z
+    Write-Info "Installing Phoenix Tuner X from Microsoft Store..."
     
-    if ($release) {
-        $asset = $release.assets | Where-Object { $_.name -match "Phoenix.*Tuner.*\.exe$" } | Select-Object -First 1
-        if ($asset) {
-            $downloadUrl = $asset.browser_download_url
-        } else {
-            $downloadUrl = "https://github.com/CrossTheRoadElec/Phoenix-Releases/releases/latest/download/Phoenix-Tuner-X-Windows.exe"
-        }
+    # Install using winget from Microsoft Store
+    $result = winget install --id 9NVVV4PWDW27Z --source msstore --accept-package-agreements --accept-source-agreements --silent
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Success "Phoenix Tuner X installed from Microsoft Store"
+    } elseif ($LASTEXITCODE -eq -1978335189) {
+        # Already installed
+        Write-Success "Phoenix Tuner X is already installed"
     } else {
-        $downloadUrl = "https://github.com/CrossTheRoadElec/Phoenix-Releases/releases/latest/download/Phoenix-Tuner-X-Windows.exe"
-    }
-    
-    $installerPath = Join-Path $Config.TempPath "PhoenixTunerX_Setup.exe"
-    
-    # Download installer
-    Write-Info "Downloading Phoenix Tuner X..."
-    $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath -UseBasicParsing
-    $ProgressPreference = 'Continue'
-    
-    # Install silently
-    Write-Info "Installing Phoenix Tuner X..."
-    Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait -NoNewWindow
-    Write-Success "Phoenix Tuner X installed"
-    
-    # Create desktop shortcut
-    New-DesktopShortcut -TargetPath $phoenixExe -ShortcutName "Phoenix Tuner X" -Description "CTRE Phoenix Tuner X"
-    
-    # Cleanup
-    if ($CleanupInstallers) {
-        Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
+        Write-Warning "Phoenix Tuner X installation may have failed (exit code: $LASTEXITCODE)"
+        Write-Warning "You can install manually from: https://apps.microsoft.com/detail/9nvv4pwdw27z"
     }
 }
 
@@ -332,7 +302,7 @@ function Install-WPILib {
         New-Item -ItemType Directory -Path $Config.TempPath -Force | Out-Null
     }
     
-    # Get latest release from GitHub
+    # Get latest release version from GitHub
     Write-Info "Fetching latest WPILib release..."
     $release = Get-GitHubLatestRelease -Repo "wpilibsuite/allwpilib"
     
@@ -340,10 +310,11 @@ function Install-WPILib {
         $version = $release.tag_name -replace '^v', ''
     } else {
         Write-Warning "Could not fetch latest version, using default"
-        $version = "2025.1.1"
+        $version = "2025.3.2"
     }
     
-    $isoUrl = "https://github.com/wpilibsuite/allwpilib/releases/download/v$version/WPILib_Windows-$version.iso"
+    # Download from WPILib packages server (not GitHub releases)
+    $isoUrl = "https://packages.wpilib.workers.dev/installer/v$version/Win64/WPILib_Windows-$version.iso"
     $isoPath = Join-Path $Config.TempPath "WPILib_Windows.iso"
     
     # Download ISO if not present
