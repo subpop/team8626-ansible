@@ -26,23 +26,25 @@ param(
 $Config = @{
     # Temp directory for downloads
     TempPath = "C:\Temp\FRC_Downloads"
-    
+
     # FRC Season Year
     Year = "2025"
-    
+
     # NI FRC Game Tools
     # Update URL each season from: https://www.ni.com/en/support/downloads/drivers/download.frc-game-tools.html
     NIToolsUrl = "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2025-game-tools/25.0/online/ni-frc-2025-game-tools_25.0_online.exe"
-    
+
     # WPILib (uses GitHub API for latest)
     WPILibInstallPath = "C:\Users\Public\wpilib"
-    
+
     # Phoenix Tuner X
     PhoenixInstallPath = "C:\Program Files (x86)\CTRE\Phoenix Tuner X"
-    
+
     # REV Hardware Client
+    # Update URL from: https://github.com/REVrobotics/REV-Software-Binaries/releases
+    REVClientUrl = "https://github.com/REVrobotics/REV-Software-Binaries/releases/download/rhc-1.7.5/REV-Hardware-Client-Setup-1.7.5-offline-FRC-2025-03-18.exe"
     REVInstallPath = "C:\Program Files\REV Robotics\REV Hardware Client"
-    
+
     # PathPlanner
     PathPlannerInstallPath = "C:\Program Files\PathPlanner"
     
@@ -235,19 +237,46 @@ function Install-NIGameTools {
 
 function Install-REVClient {
     Write-Step "5/9" "Installing REV Hardware Client..."
-    
-    $installed = choco list --local-only rev-hardware-client 2>$null | Select-String "^rev-hardware-client\s"
-    if ($installed) {
-        Write-Success "REV Hardware Client is already installed"
-    } else {
-        Write-Info "Installing REV Hardware Client via Chocolatey..."
-        choco install rev-hardware-client -y | Out-Null
-        Write-Success "REV Hardware Client installed"
-    }
-    
-    # Create desktop shortcut
+
+    # Check if already installed
     $revExe = Join-Path $Config.REVInstallPath "REV Hardware Client.exe"
+    if (Test-Path $revExe) {
+        Write-Success "REV Hardware Client is already installed"
+        New-DesktopShortcut -TargetPath $revExe -ShortcutName "REV Hardware Client" -Description "REV Robotics Hardware Client"
+        return
+    }
+
+    # Ensure temp directory exists
+    if (-not (Test-Path $Config.TempPath)) {
+        New-Item -ItemType Directory -Path $Config.TempPath -Force | Out-Null
+    }
+
+    $installerPath = Join-Path $Config.TempPath "REV-Hardware-Client-Setup.exe"
+
+    # Download installer if not present
+    if (-not (Test-Path $installerPath)) {
+        Write-Info "Downloading REV Hardware Client..."
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $Config.REVClientUrl -OutFile $installerPath -UseBasicParsing
+        $ProgressPreference = 'Continue'
+        Write-Success "Download complete"
+    } else {
+        Write-Info "Using cached installer"
+    }
+
+    # Run installer
+    Write-Info "Installing REV Hardware Client..."
+    Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait -NoNewWindow
+    Write-Success "REV Hardware Client installed"
+
+    # Create desktop shortcut
     New-DesktopShortcut -TargetPath $revExe -ShortcutName "REV Hardware Client" -Description "REV Robotics Hardware Client"
+
+    # Cleanup
+    if ($CleanupInstallers) {
+        Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
+        Write-Info "Cleaned up installer files"
+    }
 }
 
 function Install-PhoenixTunerX {

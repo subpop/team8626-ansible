@@ -11,7 +11,7 @@ PowerShell scripts for setting up Windows 11 laptops with FIRST Robotics Competi
 | 7zip | File archiver | Chocolatey |
 | Google Chrome | Web browser | Chocolatey |
 | NI FRC Game Tools | Driver Station, roboRIO imaging | ISO download |
-| REV Hardware Client | Configure REV Robotics hardware | Chocolatey |
+| REV Hardware Client | Configure REV Robotics hardware | GitHub release |
 | Phoenix Tuner X | Configure CTRE motor controllers | GitHub release |
 | WPILib VS Code | FRC development environment | ISO download |
 | PathPlanner | Autonomous path planning | Chocolatey |
