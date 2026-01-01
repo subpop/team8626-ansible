@@ -90,6 +90,55 @@ function Set-WindowsConfiguration {
         Write-Info "Developer Mode already enabled"
     }
 
+    # Disable Lenovo Vantage startup (machine-wide)
+    Write-Info "Disabling Lenovo Vantage startup..."
+    $lenovoDisabled = $false
+
+    # Check HKLM Run keys for Lenovo Vantage entries
+    $runKeys = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run"
+    )
+    foreach ($runKey in $runKeys) {
+        if (Test-Path $runKey) {
+            $properties = Get-ItemProperty -Path $runKey -ErrorAction SilentlyContinue
+            $properties.PSObject.Properties | Where-Object { $_.Name -like "*Lenovo*Vantage*" -or $_.Name -like "*VantageService*" } | ForEach-Object {
+                Remove-ItemProperty -Path $runKey -Name $_.Name -ErrorAction SilentlyContinue
+                Write-Success "Removed startup entry: $($_.Name)"
+                $lenovoDisabled = $true
+            }
+        }
+    }
+
+    # Disable Lenovo Vantage scheduled tasks
+    $lenovoTasks = Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object { 
+        $_.TaskName -like "*Lenovo*" -and ($_.TaskName -like "*Vantage*" -or $_.TaskName -like "*ImController*")
+    }
+    foreach ($task in $lenovoTasks) {
+        if ($task.State -ne "Disabled") {
+            Disable-ScheduledTask -TaskName $task.TaskName -TaskPath $task.TaskPath -ErrorAction SilentlyContinue | Out-Null
+            Write-Success "Disabled scheduled task: $($task.TaskName)"
+            $lenovoDisabled = $true
+        }
+    }
+
+    # Disable Lenovo Vantage via StartupApproved registry (affects Task Manager startup list)
+    $startupApprovedPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"
+    if (Test-Path $startupApprovedPath) {
+        $properties = Get-ItemProperty -Path $startupApprovedPath -ErrorAction SilentlyContinue
+        $properties.PSObject.Properties | Where-Object { $_.Name -like "*Lenovo*" -or $_.Name -like "*Vantage*" } | ForEach-Object {
+            # Set disabled flag (first byte = 03 means disabled)
+            $disabledValue = [byte[]](0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+            Set-ItemProperty -Path $startupApprovedPath -Name $_.Name -Value $disabledValue -Type Binary -ErrorAction SilentlyContinue
+            Write-Success "Disabled in StartupApproved: $($_.Name)"
+            $lenovoDisabled = $true
+        }
+    }
+
+    if (-not $lenovoDisabled) {
+        Write-Info "No Lenovo Vantage startup entries found"
+    }
+
     # Set desktop wallpaper
     if (-not $SkipWallpaper) {
         Set-DesktopWallpaper -Step "Config"
