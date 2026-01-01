@@ -57,7 +57,7 @@ function Install-NIGameTools {
 
     # Run installer
     Write-Info "Installing NI FRC Game Tools (this takes 15-30 minutes, requires internet)..."
-    Start-Process -FilePath $installerPath -ArgumentList "--acccept-eulas --passive install ni-frc-2025-game-tools" -Wait -NoNewWindow
+    Start-Process -FilePath $installerPath -ArgumentList "--accept-eulas --passive install ni-frc-2025-game-tools" -Wait -NoNewWindow
     Write-Success "NI FRC Game Tools installed"
 
     # Cleanup
