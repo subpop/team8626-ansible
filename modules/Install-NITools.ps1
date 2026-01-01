@@ -28,11 +28,15 @@ function Install-NIGameTools {
     
     Write-Step $Step "Installing NI FRC Game Tools..."
 
-    # Check if already installed via registry
-    $niInstalled = Get-ItemProperty "HKLM:\SOFTWARE\National Instruments\Common\Installer" -ErrorAction SilentlyContinue
-    if ($niInstalled) {
-        Write-Success "NI FRC Game Tools is already installed"
-        return
+    # Check if NI Package Manager is actually installed by verifying executable exists
+    $nipmRegPath = "HKLM:\SOFTWARE\National Instruments\NI Package Manager"
+    $nipmReg = Get-ItemProperty $nipmRegPath -ErrorAction SilentlyContinue
+    if ($nipmReg -and $nipmReg.Path) {
+        $nipkgExe = Join-Path $nipmReg.Path "nipkg.exe"
+        if (Test-Path $nipkgExe) {
+            Write-Success "NI FRC Game Tools is already installed"
+            return
+        }
     }
 
     # Ensure temp directory exists
