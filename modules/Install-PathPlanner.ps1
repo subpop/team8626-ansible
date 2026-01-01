@@ -1,5 +1,5 @@
 # FRC Team 8626 - PathPlanner Installer
-# Installs PathPlanner via Chocolatey
+# Installs PathPlanner via winget (Microsoft Store)
 #
 # Standalone usage: .\Install-PathPlanner.ps1
 # Module usage: . .\Install-PathPlanner.ps1; Install-PathPlanner
@@ -15,11 +15,6 @@ $modulePath = $PSScriptRoot
 . "$modulePath\FRCConfig.ps1"
 . "$modulePath\FRCHelpers.ps1"
 
-# Ensure Chocolatey is available for standalone execution
-if ($MyInvocation.InvocationName -notin @(".", "&") -or $Standalone) {
-    . "$modulePath\Install-Chocolatey.ps1"
-}
-
 # ============================================================================
 # Installation Function
 # ============================================================================
@@ -29,18 +24,30 @@ function Install-PathPlanner {
     
     Write-Step $Step "Installing PathPlanner..."
 
-    $installed = choco list --local-only pathplanner 2>$null | Select-String "^pathplanner\s"
+    # Check if winget is available
+    $wingetPath = Get-Command winget -ErrorAction SilentlyContinue
+    if (-not $wingetPath) {
+        Write-Warning "winget is not available. Please ensure App Installer is installed from the Microsoft Store."
+        return
+    }
+
+    # Check if PathPlanner is already installed
+    $installed = winget list --id 9NQBKB5DW909 --accept-source-agreements 2>$null | Select-String "9NQBKB5DW909"
     if ($installed) {
         Write-Success "PathPlanner is already installed"
     } else {
-        Write-Info "Installing PathPlanner via Chocolatey..."
-        choco install pathplanner -y | Out-Null
-        Write-Success "PathPlanner installed"
+        Write-Info "Installing PathPlanner via winget (Microsoft Store)..."
+        winget install --id 9NQBKB5DW909 --source msstore --accept-source-agreements --accept-package-agreements --silent | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Success "PathPlanner installed"
+        } else {
+            Write-Warning "PathPlanner installation may have failed. Please check manually."
+        }
     }
 
-    # Create desktop shortcut
-    $pathplannerExe = Join-Path $FRCConfig.PathPlannerInstallPath "PathPlanner.exe"
-    New-DesktopShortcut -TargetPath $pathplannerExe -ShortcutName "PathPlanner" -Description "FRC PathPlanner - Autonomous Path Planning"
+    # Note: Microsoft Store apps create Start Menu shortcuts automatically
+    # Desktop shortcut can be created manually by the user from the Start Menu
+    Write-Info "PathPlanner is available from the Start Menu"
 }
 
 # ============================================================================
@@ -53,13 +60,10 @@ $isStandalone = $MyInvocation.InvocationName -notin @(".", "&") -or $Standalone
 if ($isStandalone) {
     Write-Banner "FRC Team 8626 - PathPlanner Installer"
     
-    # Ensure Chocolatey is installed first
-    Install-Chocolatey -Step "1/2"
-    Install-PathPlanner -Step "2/2"
+    Install-PathPlanner -Step "1/1"
     
     Write-Banner "Installation Complete!"
     Write-Host "Installed:" -ForegroundColor White
-    Write-Host "  - PathPlanner" -ForegroundColor Green
-    Write-Host "  - Desktop shortcut created" -ForegroundColor Green
+    Write-Host "  - PathPlanner (Microsoft Store)" -ForegroundColor Green
+    Write-Host "  - Available from Start Menu" -ForegroundColor Green
 }
-
