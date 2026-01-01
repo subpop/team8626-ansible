@@ -32,8 +32,10 @@ function Install-PhoenixTunerX {
         return
     }
 
+    $id = "9NVV4PWDW27Z"
+
     # Check if already installed via winget
-    $installed = winget list --id 9NVVV4PWDW27Z --source msstore 2>$null
+    $installed = winget list --name "Phoenix Tuner X" 2>$null
     if ($LASTEXITCODE -eq 0 -and $installed -match "Phoenix") {
         Write-Success "Phoenix Tuner X is already installed"
         return
@@ -44,7 +46,7 @@ function Install-PhoenixTunerX {
     Write-Info "Installing Phoenix Tuner X from Microsoft Store..."
 
     # Install using winget from Microsoft Store
-    $result = winget install --id 9NVVV4PWDW27Z --source msstore --accept-package-agreements --accept-source-agreements --silent
+    $result = winget install --id $id --accept-package-agreements --accept-source-agreements
 
     if ($LASTEXITCODE -eq 0) {
         Write-Success "Phoenix Tuner X installed from Microsoft Store"
