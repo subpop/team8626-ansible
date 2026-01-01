@@ -10,18 +10,20 @@ PowerShell scripts for setting up Windows 11 laptops with FIRST Robotics Competi
 | Git | Version control | Chocolatey |
 | 7zip | File archiver | Chocolatey |
 | Google Chrome | Web browser | Chocolatey |
-| NI FRC Game Tools | Driver Station, roboRIO imaging | ISO download |
+| NI FRC Game Tools | Driver Station, roboRIO imaging | Online installer |
 | REV Hardware Client | Configure REV Robotics hardware | GitHub release |
 | Phoenix Tuner X | Configure CTRE motor controllers | GitHub release |
-| WPILib VS Code | FRC development environment | ISO download |
+| WPILib VS Code | FRC development environment | GitHub release |
 | PathPlanner | Autonomous path planning | Chocolatey |
+| Browser Bookmarks | FRC resources for Chrome & Edge | Script |
+| Team Wallpaper | Desktop wallpaper | Script |
 
 ## Quick Start
 
 ### Install FRC Software
 
-1. Download `Install-FRCTools.ps1` to the Windows laptop
-2. Right-click and select **Run with PowerShell** as Administrator, or:
+1. Download the entire repository (or clone it) to the Windows laptop
+2. Right-click `Install-FRCTools.ps1` and select **Run with PowerShell** as Administrator, or:
 
 ```powershell
 # Open PowerShell as Administrator and run:
@@ -41,21 +43,46 @@ The script is **idempotent** - safe to run multiple times. It will skip already-
 | Phoenix Tuner X | 2-3 minutes |
 | WPILib | 10-20 minutes |
 | PathPlanner | 1-2 minutes |
+| Browser Bookmarks | < 1 minute |
+| Team Wallpaper | < 1 minute |
 | **Total** | **35-65 minutes** |
 
-## Scripts
+## Project Structure
 
-### Install-FRCTools.ps1
+```
+team8626-ansible/
+├── Install-FRCTools.ps1          # Main installer (orchestrates everything)
+├── modules/
+│   ├── FRCConfig.ps1             # Shared configuration (versions, URLs)
+│   ├── FRCHelpers.ps1            # Shared helper functions
+│   ├── Install-Bookmarks.ps1     # Browser bookmarks installer
+│   ├── Install-Chocolatey.ps1    # Chocolatey + common packages
+│   ├── Install-Chrome.ps1        # Google Chrome
+│   ├── Install-NITools.ps1       # NI FRC Game Tools
+│   ├── Install-PathPlanner.ps1   # PathPlanner
+│   ├── Install-Phoenix.ps1       # Phoenix Tuner X
+│   ├── Install-REVClient.ps1     # REV Hardware Client
+│   ├── Install-Wallpaper.ps1     # Desktop wallpaper
+│   └── Install-WPILib.ps1        # WPILib VS Code
+└── Cyber+Sailors_Desktop.png     # Team wallpaper image
+```
 
-Main installation script that sets up all FRC software.
+## Usage
+
+### Full Installation (Default)
 
 ```powershell
-# Full installation (recommended)
 PowerShell -ExecutionPolicy Bypass -File Install-FRCTools.ps1
+```
 
-# Skip specific components
+### Skip Specific Components
+
+```powershell
+# Skip NI Game Tools (useful if already installed)
 PowerShell -ExecutionPolicy Bypass -File Install-FRCTools.ps1 -SkipNITools
-PowerShell -ExecutionPolicy Bypass -File Install-FRCTools.ps1 -SkipChrome -SkipPathPlanner
+
+# Skip multiple components
+PowerShell -ExecutionPolicy Bypass -File Install-FRCTools.ps1 -SkipChrome -SkipPathPlanner -SkipWallpaper
 ```
 
 **Available Skip Flags:**
@@ -66,23 +93,42 @@ PowerShell -ExecutionPolicy Bypass -File Install-FRCTools.ps1 -SkipChrome -SkipP
 - `-SkipPhoenix` - Skip Phoenix Tuner X
 - `-SkipWPILib` - Skip WPILib
 - `-SkipPathPlanner` - Skip PathPlanner
+- `-SkipBookmarks` - Skip browser bookmarks
+- `-SkipWallpaper` - Skip team wallpaper
 
-### Undo-WinRMSetup.ps1
+### Install Only Specific Components
 
-If you previously used the Ansible-based setup (which required WinRM remote management), this script reverts those security changes.
+Use "Only" flags to run just one installer:
 
 ```powershell
-PowerShell -ExecutionPolicy Bypass -File Undo-WinRMSetup.ps1
+# Install only WPILib
+PowerShell -ExecutionPolicy Bypass -File Install-FRCTools.ps1 -OnlyWPILib
+
+# Install only bookmarks and wallpaper
+PowerShell -ExecutionPolicy Bypass -File Install-FRCTools.ps1 -OnlyBookmarks -OnlyWallpaper
 ```
 
-**This script:**
-- Removes Windows Defender exclusions for temp directories
-- Disables the local Administrator account
-- Stops and disables WinRM service
-- Removes the WinRM HTTPS listener (port 5986)
-- Removes the self-signed certificate
-- Removes the firewall rule for WinRM
-- Resets LocalAccountTokenFilterPolicy
+**Available Only Flags:**
+- `-OnlyChocolatey` - Install only Chocolatey and common packages
+- `-OnlyChrome` - Install only Google Chrome
+- `-OnlyNITools` - Install only NI FRC Game Tools
+- `-OnlyREVClient` - Install only REV Hardware Client
+- `-OnlyPhoenix` - Install only Phoenix Tuner X
+- `-OnlyWPILib` - Install only WPILib
+- `-OnlyPathPlanner` - Install only PathPlanner
+- `-OnlyBookmarks` - Install only browser bookmarks
+- `-OnlyWallpaper` - Install only team wallpaper
+
+### Standalone Module Usage
+
+Each module can also be run independently:
+
+```powershell
+# Run a single installer module directly
+.\modules\Install-WPILib.ps1
+.\modules\Install-REVClient.ps1
+.\modules\Install-Bookmarks.ps1
+```
 
 ## What Gets Installed
 
@@ -94,24 +140,41 @@ After installation, the following shortcuts appear on the Public Desktop:
 - Phoenix Tuner X
 - PathPlanner
 
+### Browser Bookmarks
+
+FRC resource bookmarks are added to both Chrome and Edge:
+- WPILib Documentation
+- REV Robotics Docs
+- CTRE Phoenix Docs
+- PathPlanner Docs
+- Chief Delphi
+- The Blue Alliance
+- FRC Q&A
+- PhotonVision Docs
+- W3Schools
+
 ### Windows Configuration
 
 The script also:
 - Adds Windows Defender exclusions for FRC tool directories
 - Enables Developer Mode (helpful for FRC development)
+- Sets team desktop wallpaper
 
 ## Updating for New FRC Season
 
-Edit the configuration section at the top of `Install-FRCTools.ps1`:
+Edit `modules/FRCConfig.ps1` to update versions and URLs:
 
 ```powershell
-$Config = @{
+$script:FRCConfig = @{
     # FRC Season Year
     Year = "2025"
     
     # NI FRC Game Tools - UPDATE THIS URL EACH SEASON
     # Get from: https://www.ni.com/en/support/downloads/drivers/download.frc-game-tools.html
-    NIToolsUrl = "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2025-game-tools/25.0/offline/ni-frc-2025-game-tools_25.0.0_offline.iso"
+    NIToolsUrl = "https://download.ni.com/..."
+    
+    # REV Hardware Client - UPDATE FROM GitHub releases
+    REVClientUrl = "https://github.com/REVrobotics/..."
     
     # ... other settings
 }
@@ -130,10 +193,10 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 
 ### NI Game Tools Download Fails
 
-The NI download is ~2GB and may timeout on slow connections. If it fails:
-1. Download the ISO manually from [NI's website](https://www.ni.com/en/support/downloads/drivers/download.frc-game-tools.html)
-2. Place it at `C:\Temp\FRC_Downloads\ni-frc-game-tools.iso`
-3. Re-run the script
+The NI download may timeout on slow connections. If it fails:
+1. Download manually from [NI's website](https://www.ni.com/en/support/downloads/drivers/download.frc-game-tools.html)
+2. Run the installer manually
+3. Re-run the script with `-SkipNITools`
 
 ### WPILib Download Fails
 
