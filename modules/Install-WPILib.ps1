@@ -71,9 +71,9 @@ function Install-WPILib {
     $driveLetter = ($mountResult | Get-Volume).DriveLetter
 
     # Run installer
-    Write-Info "Installing WPILib (this takes 10-20 minutes)..."
+    Write-Info "Installing WPILib..."
     $installerPath = "${driveLetter}:\WPILibInstaller.exe"
-    Start-Process -FilePath $installerPath -ArgumentList "--mode unattended --installAllUsers true" -Wait -NoNewWindow
+    Start-Process -FilePath $installerPath -Wait -NoNewWindow
     Write-Success "WPILib installed"
 
     # Unmount ISO
