@@ -36,6 +36,9 @@ $script:FRCConfig = @{
     # PathPlanner
     PathPlannerInstallPath = "C:\Program Files\PathPlanner"
 
+    # Raspberry Pi Imager
+    RpiImagerInstallPath = "C:\Program Files\Raspberry Pi Imager"
+
     # Common packages to install via Chocolatey
     CommonPackages = @("git", "7zip")
 

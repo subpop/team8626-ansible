@@ -16,8 +16,49 @@ $modulePath = $PSScriptRoot
 . "$modulePath\FRCHelpers.ps1"
 
 # ============================================================================
-# Installation Function
+# Installation Functions
 # ============================================================================
+
+function Set-EdgeStartPage {
+    <#
+    .SYNOPSIS
+        Configures Edge start page to show only a search bar
+    .DESCRIPTION
+        Disables all start page content (news, quick links, top sites) 
+        while keeping the search bar via Edge policies
+    #>
+    param([string]$Step = "1/1")
+    
+    Write-Step $Step "Configuring Edge start page (search bar only)..."
+
+    $edgePolicyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+
+    try {
+        # Create Edge policy key if it doesn't exist
+        if (-not (Test-Path $edgePolicyPath)) {
+            New-Item -Path $edgePolicyPath -Force | Out-Null
+        }
+
+        # Disable content feed (news, articles, etc.)
+        Set-ItemProperty -Path $edgePolicyPath -Name "NewTabPageContentEnabled" -Value 0 -Type DWord
+
+        # Disable quick links
+        Set-ItemProperty -Path $edgePolicyPath -Name "NewTabPageQuickLinksEnabled" -Value 0 -Type DWord
+
+        # Hide default top sites
+        Set-ItemProperty -Path $edgePolicyPath -Name "NewTabPageHideDefaultTopSites" -Value 1 -Type DWord
+
+        # Disable sponsored content
+        Set-ItemProperty -Path $edgePolicyPath -Name "NewTabPagePrerenderEnabled" -Value 0 -Type DWord
+
+        # Set background to no image (solid color)
+        Set-ItemProperty -Path $edgePolicyPath -Name "NewTabPageAllowedBackgroundTypes" -Value 1 -Type DWord
+
+        Write-Success "Edge start page configured (search bar only)"
+    } catch {
+        Write-Info "Could not configure Edge start page: $_"
+    }
+}
 
 function Install-BrowserBookmarks {
     param([string]$Step = "1/1")
@@ -193,13 +234,14 @@ function Install-BrowserBookmarks {
 $isStandalone = $MyInvocation.InvocationName -notin @(".", "&") -or $Standalone
 
 if ($isStandalone) {
-    Write-Banner "FRC Team 8626 - Browser Bookmarks Installer"
+    Write-Banner "FRC Team 8626 - Browser Configuration"
     
-    Install-BrowserBookmarks -Step "1/1"
+    Install-BrowserBookmarks -Step "1/2"
+    Set-EdgeStartPage -Step "2/2"
     
     Write-Banner "Installation Complete!"
-    Write-Host "Added FRC Resources bookmarks to:" -ForegroundColor White
-    Write-Host "  - Google Chrome" -ForegroundColor Green
-    Write-Host "  - Microsoft Edge" -ForegroundColor Green
+    Write-Host "Browser configuration applied:" -ForegroundColor White
+    Write-Host "  - FRC Resources bookmarks added to Chrome and Edge" -ForegroundColor Green
+    Write-Host "  - Edge start page set to search bar only" -ForegroundColor Green
 }
 

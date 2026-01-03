@@ -19,6 +19,7 @@ param(
     [switch]$SkipPhoenix,
     [switch]$SkipWPILib,
     [switch]$SkipPathPlanner,
+    [switch]$SkipRpiImager,
     [switch]$SkipBookmarks,
     [switch]$SkipWallpaper,
     [switch]$OnlyChocolatey,
@@ -28,6 +29,7 @@ param(
     [switch]$OnlyPhoenix,
     [switch]$OnlyWPILib,
     [switch]$OnlyPathPlanner,
+    [switch]$OnlyRpiImager,
     [switch]$OnlyBookmarks,
     [switch]$OnlyWallpaper,
     [switch]$CleanupInstallers = $true
@@ -51,6 +53,7 @@ $modulePath = Join-Path $PSScriptRoot "modules"
 . "$modulePath\Install-Phoenix.ps1"
 . "$modulePath\Install-WPILib.ps1"
 . "$modulePath\Install-PathPlanner.ps1"
+. "$modulePath\Install-RpiImager.ps1"
 . "$modulePath\Install-Bookmarks.ps1"
 . "$modulePath\Install-Wallpaper.ps1"
 
@@ -160,7 +163,9 @@ Write-Host "  - REV Hardware Client" -ForegroundColor White
 Write-Host "  - Phoenix Tuner X" -ForegroundColor White
 Write-Host "  - WPILib VS Code" -ForegroundColor White
 Write-Host "  - PathPlanner" -ForegroundColor White
+Write-Host "  - Raspberry Pi Imager" -ForegroundColor White
 Write-Host "  - Browser Bookmarks (Chrome & Edge)" -ForegroundColor White
+Write-Host "  - Edge Start Page (search bar only)" -ForegroundColor White
 Write-Host "  - Team Desktop Wallpaper" -ForegroundColor White
 Write-Host ""
 
@@ -168,7 +173,7 @@ Write-Host ""
 Ensure-TempDirectory
 
 # Detect if any "Only" flag is set
-$onlyMode = $OnlyChocolatey -or $OnlyChrome -or $OnlyNITools -or $OnlyREVClient -or $OnlyPhoenix -or $OnlyWPILib -or $OnlyPathPlanner -or $OnlyBookmarks -or $OnlyWallpaper
+$onlyMode = $OnlyChocolatey -or $OnlyChrome -or $OnlyNITools -or $OnlyREVClient -or $OnlyPhoenix -or $OnlyWPILib -or $OnlyPathPlanner -or $OnlyRpiImager -or $OnlyBookmarks -or $OnlyWallpaper
 
 # Run installations
 if ($onlyMode) {
@@ -183,19 +188,27 @@ if ($onlyMode) {
     if ($OnlyPhoenix) { Install-PhoenixTunerX -Step "1/1" }
     if ($OnlyWPILib) { Install-WPILib -Step "1/1" -Cleanup $CleanupInstallers }
     if ($OnlyPathPlanner) { Install-PathPlanner -Step "1/1" }
-    if ($OnlyBookmarks) { Install-BrowserBookmarks -Step "1/1" }
+    if ($OnlyRpiImager) { Install-RpiImager -Step "1/1" }
+    if ($OnlyBookmarks) { 
+        Install-BrowserBookmarks -Step "1/2"
+        Set-EdgeStartPage -Step "2/2"
+    }
     if ($OnlyWallpaper) { Set-DesktopWallpaper -Step "1/1" }
 } else {
     # Normal mode - run all installations except skipped ones
-    if (-not $SkipChocolatey) { Install-Chocolatey -Step "1/9" }
-    if (-not $SkipChocolatey) { Install-CommonPackages -Step "2/9" }
-    if (-not $SkipChrome) { Install-Chrome -Step "3/9" }
-    if (-not $SkipNITools) { Install-NIGameTools -Step "4/9" -Cleanup $CleanupInstallers }
-    if (-not $SkipREVClient) { Install-REVClient -Step "5/9" -Cleanup $CleanupInstallers }
-    if (-not $SkipPhoenix) { Install-PhoenixTunerX -Step "6/9" }
-    if (-not $SkipWPILib) { Install-WPILib -Step "7/9" -Cleanup $CleanupInstallers }
-    if (-not $SkipPathPlanner) { Install-PathPlanner -Step "8/9" }
-    if (-not $SkipBookmarks) { Install-BrowserBookmarks -Step "9/9" }
+    if (-not $SkipChocolatey) { Install-Chocolatey -Step "1/11" }
+    if (-not $SkipChocolatey) { Install-CommonPackages -Step "2/11" }
+    if (-not $SkipChrome) { Install-Chrome -Step "3/11" }
+    if (-not $SkipNITools) { Install-NIGameTools -Step "4/11" -Cleanup $CleanupInstallers }
+    if (-not $SkipREVClient) { Install-REVClient -Step "5/11" -Cleanup $CleanupInstallers }
+    if (-not $SkipPhoenix) { Install-PhoenixTunerX -Step "6/11" }
+    if (-not $SkipWPILib) { Install-WPILib -Step "7/11" -Cleanup $CleanupInstallers }
+    if (-not $SkipPathPlanner) { Install-PathPlanner -Step "8/11" }
+    if (-not $SkipRpiImager) { Install-RpiImager -Step "9/11" }
+    if (-not $SkipBookmarks) { 
+        Install-BrowserBookmarks -Step "10/11"
+        Set-EdgeStartPage -Step "11/11"
+    }
 
     # Configure Windows settings
     Set-WindowsConfiguration
@@ -213,11 +226,13 @@ Write-Host "  - REV Hardware Client" -ForegroundColor Green
 Write-Host "  - Phoenix Tuner X" -ForegroundColor Green
 Write-Host "  - WPILib VS Code" -ForegroundColor Green
 Write-Host "  - PathPlanner" -ForegroundColor Green
+Write-Host "  - Raspberry Pi Imager" -ForegroundColor Green
 Write-Host "  - FRC Browser Bookmarks" -ForegroundColor Green
 Write-Host "  - Team Desktop Wallpaper" -ForegroundColor Green
 Write-Host ""
 Write-Host "Desktop shortcuts have been created." -ForegroundColor White
 Write-Host "FRC Resources bookmarks added to Chrome and Edge." -ForegroundColor White
+Write-Host "Edge start page configured (search bar only)." -ForegroundColor White
 Write-Host "Team wallpaper has been applied to all user profiles." -ForegroundColor White
 
 if ($rebootRequired) {
