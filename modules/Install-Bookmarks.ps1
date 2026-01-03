@@ -54,6 +54,15 @@ function Set-EdgeStartPage {
         # Set background to no image (solid color)
         Set-ItemProperty -Path $edgePolicyPath -Name "NewTabPageAllowedBackgroundTypes" -Value 1 -Type DWord
 
+        # Disable MSN "Show content" / spotlight experiences
+        Set-ItemProperty -Path $edgePolicyPath -Name "SpotlightExperiencesAndRecommendationsEnabled" -Value 0 -Type DWord
+
+        # Disable recommendations
+        Set-ItemProperty -Path $edgePolicyPath -Name "ShowRecommendationsEnabled" -Value 0 -Type DWord
+
+        # Disable shopping assistant
+        Set-ItemProperty -Path $edgePolicyPath -Name "EdgeShoppingAssistantEnabled" -Value 0 -Type DWord
+
         Write-Success "Edge start page configured (search bar only)"
     } catch {
         Write-Info "Could not configure Edge start page: $_"
