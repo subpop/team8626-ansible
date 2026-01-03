@@ -142,6 +142,20 @@ function Set-WindowsConfiguration {
         Write-Info "No Lenovo Vantage startup entries found"
     }
 
+    # Disable search highlights (keeps search bar visible)
+    Write-Info "Disabling search highlights..."
+    $searchSettingsPath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings"
+    if (-not (Test-Path $searchSettingsPath)) {
+        New-Item -Path $searchSettingsPath -Force | Out-Null
+    }
+    $currentValue = Get-ItemProperty -Path $searchSettingsPath -Name "IsDynamicSearchBoxEnabled" -ErrorAction SilentlyContinue
+    if ($currentValue.IsDynamicSearchBoxEnabled -ne 0) {
+        Set-ItemProperty -Path $searchSettingsPath -Name "IsDynamicSearchBoxEnabled" -Value 0 -Type DWord
+        Write-Success "Search highlights disabled"
+    } else {
+        Write-Info "Search highlights already disabled"
+    }
+
     # Set desktop wallpaper
     if (-not $SkipWallpaper) {
         Set-DesktopWallpaper -Step "Config"
