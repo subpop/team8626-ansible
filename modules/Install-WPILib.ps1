@@ -47,7 +47,7 @@ function Install-WPILib {
         $version = $release.tag_name -replace '^v', ''
     } else {
         Write-Warning "Could not fetch latest version, using default"
-        $version = "2025.3.2"
+        $version = "2026.1.1"
     }
 
     # Download from WPILib packages server (not GitHub releases)

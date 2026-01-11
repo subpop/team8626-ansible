@@ -16,11 +16,11 @@ $script:FRCConfig = @{
     TempPath = "C:\Temp\FRC_Downloads"
 
     # FRC Season Year
-    Year = "2025"
+    Year = "2026"
 
     # NI FRC Game Tools
     # Update URL each season from: https://www.ni.com/en/support/downloads/drivers/download.frc-game-tools.html
-    NIToolsUrl = "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2025-game-tools/25.0/online/ni-frc-2025-game-tools_25.0_online.exe"
+    NIToolsUrl = "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2026-game-tools/26.0/online/ni-frc-2026-game-tools_26.0_online.exe"
 
     # WPILib (uses GitHub API for latest)
     WPILibInstallPath = "C:\Users\Public\wpilib"
