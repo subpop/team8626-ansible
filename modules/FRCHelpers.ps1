@@ -152,6 +152,15 @@ function Get-InstalledWPILibYears {
 }
 
 # Export for use in other scripts
+$global:Write-Step = ${function:Write-Step}
+$global:Write-Success = ${function:Write-Success}
+$global:Write-Info = ${function:Write-Info}
+$global:Write-Banner = ${function:Write-Banner}
+$global:Test-CommandExists = ${function:Test-CommandExists}
+$global:New-DesktopShortcut = ${function:New-DesktopShortcut}
+$global:Get-GitHubLatestRelease = ${function:Get-GitHubLatestRelease}
+$global:Ensure-TempDirectory = ${function:Ensure-TempDirectory}
+$global:Test-IsStandaloneExecution = ${function:Test-IsStandaloneExecution}
 $global:Get-InstalledNIToolsYear = ${function:Get-InstalledNIToolsYear}
 $global:Get-InstalledWPILibYears = ${function:Get-InstalledWPILibYears}
 
