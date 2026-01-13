@@ -41,8 +41,6 @@ function Install-WPILib {
     $wpilibPath = Join-Path $FRCConfig.WPILibInstallPath $Year
     if (Test-Path $wpilibPath) {
         Write-Success "WPILib $Year is already installed"
-        $vscodeExe = Join-Path $wpilibPath "vscode\Code.exe"
-        New-DesktopShortcut -TargetPath $vscodeExe -ShortcutName "WPILib VS Code $Year" -Description "WPILib VS Code $Year - FRC Development Environment"
         return
     }
 
@@ -90,10 +88,6 @@ function Install-WPILib {
     Write-Info "Unmounting ISO..."
     Dismount-DiskImage -ImagePath $isoPath | Out-Null
 
-    # Create desktop shortcut
-    $vscodeExe = Join-Path $wpilibPath "vscode\Code.exe"
-    New-DesktopShortcut -TargetPath $vscodeExe -ShortcutName "WPILib VS Code $Year" -Description "WPILib VS Code $Year - FRC Development Environment"
-
     # Cleanup
     if ($Cleanup) {
         Remove-Item $isoPath -Force -ErrorAction SilentlyContinue
@@ -117,6 +111,5 @@ if ($isStandalone) {
     Write-Banner "Installation Complete!"
     Write-Host "Installed:" -ForegroundColor White
     Write-Host "  - WPILib VS Code $installYear" -ForegroundColor Green
-    Write-Host "  - Desktop shortcut created" -ForegroundColor Green
 }
 
