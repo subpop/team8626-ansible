@@ -15,13 +15,17 @@ $script:FRCConfigLoaded = $true
 $script:FRCYearConfigs = @{
     "2026" = @{
         NIToolsUrl = "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2026-game-tools/26.0/online/ni-frc-2026-game-tools_26.0_online.exe"
-        REVClientUrl = "https://github.com/REVrobotics/REV-Software-Binaries/releases/download/rhc-1.7.5/REV-Hardware-Client-Setup-1.7.5-offline-FRC-2025-03-18.exe"
+        REVClientUrl = "https://rhc2.revrobotics.com/download/rev-hardware-client.exe"
+        REVClientVersion = "2"
+        REVInstallPath = "C:\Program Files\REV Robotics\REV Hardware Client 2"
         WPILibFallbackVersion = "2026.1.1"
         NIToolsVersion = "26.0"
     }
     "2025" = @{
         NIToolsUrl = "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2025-game-tools/25.0/online/ni-frc-2025-game-tools_25.0_online.exe"
         REVClientUrl = "https://github.com/REVrobotics/REV-Software-Binaries/releases/download/rhc-1.7.5/REV-Hardware-Client-Setup-1.7.5-offline-FRC-2025-03-18.exe"
+        REVClientVersion = "1"
+        REVInstallPath = "C:\Program Files\REV Robotics\REV Hardware Client"
         WPILibFallbackVersion = "2025.3.2"
         NIToolsVersion = "25.0"
     }

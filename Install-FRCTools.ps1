@@ -254,10 +254,13 @@ $rebootRequired = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVer
 
 Write-Banner "Installation Complete!"
 
+$yearConfig = Get-FRCYearConfig -Year $Year
+$revVersion = if ($yearConfig.REVClientVersion) { $yearConfig.REVClientVersion } else { "1" }
+
 Write-Host "Installed FRC $Year software:" -ForegroundColor White
 Write-Host "  - Google Chrome" -ForegroundColor Green
 Write-Host "  - NI FRC Game Tools $Year" -ForegroundColor Green
-Write-Host "  - REV Hardware Client (FRC $Year)" -ForegroundColor Green
+Write-Host "  - REV Hardware Client $revVersion (FRC $Year)" -ForegroundColor Green
 Write-Host "  - Phoenix Tuner X" -ForegroundColor Green
 Write-Host "  - WPILib VS Code $Year" -ForegroundColor Green
 Write-Host "  - PathPlanner" -ForegroundColor Green

@@ -36,24 +36,40 @@ function Install-REVClient {
     # Get year-specific configuration
     $yearConfig = Get-FRCYearConfig -Year $Year
 
-    Write-Step $Step "Installing REV Hardware Client (for $Year season)..."
+    # Determine install path based on year config
+    $revInstallPath = if ($yearConfig.REVInstallPath) {
+        $yearConfig.REVInstallPath
+    } else {
+        $FRCConfig.REVInstallPath  # Fallback to default
+    }
 
-    # Check if already installed
-    $revExe = Join-Path $FRCConfig.REVInstallPath "REV Hardware Client.exe"
+    # Determine version for messaging
+    $revVersion = if ($yearConfig.REVClientVersion) {
+        $yearConfig.REVClientVersion
+    } else {
+        "1"  # Default to RHC1
+    }
+
+    Write-Step $Step "Installing REV Hardware Client $revVersion (for $Year season)..."
+
+    # Check if already installed - use year-specific path
+    $revExe = Join-Path $revInstallPath "REV Hardware Client.exe"
     if (Test-Path $revExe) {
-        Write-Success "REV Hardware Client is already installed"
-        New-DesktopShortcut -TargetPath $revExe -ShortcutName "REV Hardware Client" -Description "REV Robotics Hardware Client"
+        Write-Success "REV Hardware Client $revVersion is already installed"
+        New-DesktopShortcut -TargetPath $revExe -ShortcutName "REV Hardware Client $revVersion" -Description "REV Robotics Hardware Client $revVersion"
         return
     }
 
     # Ensure temp directory exists
     Ensure-TempDirectory
 
-    $installerPath = Join-Path $FRCConfig.TempPath "REV-Hardware-Client-Setup.exe"
+    # Use year-specific filename to avoid conflicts when downloading different versions
+    $installerFileName = "REV-Hardware-Client-Setup-v$revVersion.exe"
+    $installerPath = Join-Path $FRCConfig.TempPath $installerFileName
 
     # Download installer if not present
     if (-not (Test-Path $installerPath)) {
-        Write-Info "Downloading REV Hardware Client..."
+        Write-Info "Downloading REV Hardware Client $revVersion..."
         $ProgressPreference = 'SilentlyContinue'
         Invoke-WebRequest -Uri $FRCConfig.REVClientUrl -OutFile $installerPath -UseBasicParsing
         $ProgressPreference = 'Continue'
@@ -63,12 +79,12 @@ function Install-REVClient {
     }
 
     # Run installer
-    Write-Info "Installing REV Hardware Client..."
+    Write-Info "Installing REV Hardware Client $revVersion..."
     Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait -NoNewWindow
-    Write-Success "REV Hardware Client installed"
+    Write-Success "REV Hardware Client $revVersion installed"
 
-    # Create desktop shortcut
-    New-DesktopShortcut -TargetPath $revExe -ShortcutName "REV Hardware Client" -Description "REV Robotics Hardware Client"
+    # Create desktop shortcut with version in name
+    New-DesktopShortcut -TargetPath $revExe -ShortcutName "REV Hardware Client $revVersion" -Description "REV Robotics Hardware Client $revVersion"
 
     # Cleanup
     if ($Cleanup) {
@@ -90,9 +106,12 @@ if ($isStandalone) {
     $installYear = if ($Year) { $Year } else { $FRCConfig.Year }
     Install-REVClient -Step "1/1" -Cleanup $CleanupInstallers -Year $installYear
 
+    $yearConfig = Get-FRCYearConfig -Year $installYear
+    $revVersion = if ($yearConfig.REVClientVersion) { $yearConfig.REVClientVersion } else { "1" }
+
     Write-Banner "Installation Complete!"
     Write-Host "Installed:" -ForegroundColor White
-    Write-Host "  - REV Hardware Client (FRC $installYear)" -ForegroundColor Green
+    Write-Host "  - REV Hardware Client $revVersion (FRC $installYear)" -ForegroundColor Green
     Write-Host "  - Desktop shortcut created" -ForegroundColor Green
 }
 
