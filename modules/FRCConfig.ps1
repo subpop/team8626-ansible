@@ -4,7 +4,11 @@
 # Usage: . $PSScriptRoot\FRCConfig.ps1
 
 # Prevent multiple loading
-if ($script:FRCConfigLoaded) { return }
+if ($script:FRCConfigLoaded) {
+    # Still need to export to global scope even if already loaded
+    $global:FRCConfig = $script:FRCConfig
+    return
+}
 $script:FRCConfigLoaded = $true
 
 # ============================================================================
@@ -95,7 +99,7 @@ $script:FRCConfig = @{
 # Helper Function to Get Year-Specific Configuration
 # ============================================================================
 
-function Get-FRCYearConfig {
+function global:Get-FRCYearConfig {
     <#
     .SYNOPSIS
     Retrieves configuration for a specific FRC year
@@ -119,5 +123,4 @@ function Get-FRCYearConfig {
 
 # Export for use in other scripts
 $global:FRCConfig = $script:FRCConfig
-$global:Get-FRCYearConfig = ${function:Get-FRCYearConfig}
 
