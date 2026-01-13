@@ -21,7 +21,7 @@ $modulePath = $PSScriptRoot
 
 function Install-PhoenixTunerX {
     param([string]$Step = "1/1")
-    
+
     Write-Step $Step "Installing Phoenix Tuner X..."
 
     # Check if winget is available
@@ -31,6 +31,10 @@ function Install-PhoenixTunerX {
         Write-Warning "https://apps.microsoft.com/detail/9nvv4pwdw27z"
         return
     }
+
+    # Accept source agreements proactively (required for first-time winget use)
+    Write-Info "Accepting winget source agreements..."
+    $null = winget list --accept-source-agreements 2>$null
 
     $id = "9NVV4PWDW27Z"
 
