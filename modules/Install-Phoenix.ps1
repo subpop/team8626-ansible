@@ -43,18 +43,27 @@ function Install-PhoenixTunerX {
 
     # Install from Microsoft Store via winget
     # https://apps.microsoft.com/detail/9nvv4pwdw27z
-    Write-Info "Installing Phoenix Tuner X from Microsoft Store..."
+    Write-Info "Installing Phoenix Tuner X from Microsoft Store (this may take a few minutes)..."
 
-    # Install using winget from Microsoft Store
-    $result = winget install --id $id --accept-package-agreements --accept-source-agreements
+    # Install using winget from Microsoft Store with silent flags
+    try {
+        $process = Start-Process -FilePath "winget" `
+            -ArgumentList "install --id $id --accept-package-agreements --accept-source-agreements --silent" `
+            -NoNewWindow -Wait -PassThru
 
-    if ($LASTEXITCODE -eq 0) {
-        Write-Success "Phoenix Tuner X installed from Microsoft Store"
-    } elseif ($LASTEXITCODE -eq -1978335189) {
-        # Already installed
-        Write-Success "Phoenix Tuner X is already installed"
-    } else {
-        Write-Warning "Phoenix Tuner X installation may have failed (exit code: $LASTEXITCODE)"
+        $exitCode = $process.ExitCode
+
+        if ($exitCode -eq 0) {
+            Write-Success "Phoenix Tuner X installed from Microsoft Store"
+        } elseif ($exitCode -eq -1978335189) {
+            # Already installed
+            Write-Success "Phoenix Tuner X is already installed"
+        } else {
+            Write-Warning "Phoenix Tuner X installation may have failed (exit code: $exitCode)"
+            Write-Warning "You can install manually from: https://apps.microsoft.com/detail/9nvv4pwdw27z"
+        }
+    } catch {
+        Write-Warning "Failed to install Phoenix Tuner X: $_"
         Write-Warning "You can install manually from: https://apps.microsoft.com/detail/9nvv4pwdw27z"
     }
 }
