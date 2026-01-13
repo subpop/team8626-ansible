@@ -55,12 +55,21 @@ function global:New-DesktopShortcut {
     $shortcutPath = Join-Path $desktopPath "$ShortcutName.lnk"
 
     if (Test-Path $TargetPath) {
-        $shell = New-Object -ComObject WScript.Shell
-        $shortcut = $shell.CreateShortcut($shortcutPath)
-        $shortcut.TargetPath = $TargetPath
-        $shortcut.Description = $Description
-        $shortcut.Save()
-        Write-Success "Created desktop shortcut: $ShortcutName"
+        try {
+            $shell = New-Object -ComObject WScript.Shell
+            $shortcut = $shell.CreateShortcut($shortcutPath)
+            $shortcut.TargetPath = $TargetPath
+            $shortcut.Description = $Description
+            $shortcut.Save()
+            Write-Success "Created desktop shortcut: $ShortcutName"
+        }
+        finally {
+            # Release COM objects to prevent hangs
+            if ($shortcut) { [System.Runtime.Interopservices.Marshal]::ReleaseComObject($shortcut) | Out-Null }
+            if ($shell) { [System.Runtime.Interopservices.Marshal]::ReleaseComObject($shell) | Out-Null }
+            [System.GC]::Collect()
+            [System.GC]::WaitForPendingFinalizers()
+        }
     } else {
         Write-Info "Target not found, skipping shortcut: $ShortcutName"
     }
