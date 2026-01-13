@@ -38,45 +38,47 @@ function Install-NIGameTools {
     # Get year-specific configuration
     $yearConfig = Get-FRCYearConfig -Year $Year
 
-    # Check for year conflicts
+    # Check for existing installation
     $nipmRegPath = "HKLM:\SOFTWARE\National Instruments\NI Package Manager"
     $nipmReg = Get-ItemProperty $nipmRegPath -ErrorAction SilentlyContinue
     $nipkgExe = $null
+    $installedYear = $null
 
     if ($nipmReg -and $nipmReg.Path) {
         $nipkgExe = Join-Path $nipmReg.Path "nipkg.exe"
         if (Test-Path $nipkgExe) {
             Write-Info "Detecting installed NI FRC Game Tools version..."
-            $installedPackages = & $nipkgExe list "ni-frc-*-game-tools" 2>$null
+            $installedPackages = & $nipkgExe list 2>$null | Where-Object { $_ -match "ni-frc-.*-game-tools" }
 
-            if ($installedPackages) {
-                $installedYear = $null
-                if ($installedPackages -match "ni-frc-(\d{4})-game-tools") {
-                    $installedYear = $Matches[1]
-                }
-
-                if ($installedYear -and $installedYear -ne $Year) {
-                    Write-Warning "================================================"
-                    Write-Warning "NI FRC Game Tools YEAR CONFLICT DETECTED"
-                    Write-Warning "================================================"
-                    Write-Warning "Currently installed: $installedYear"
-                    Write-Warning "Requested installation: $Year"
-                    Write-Warning ""
-                    Write-Warning "NI FRC Game Tools only supports ONE year at a time."
-                    Write-Warning "Installing $Year will REPLACE the existing $installedYear installation."
-                    Write-Warning ""
-
-                    $response = Read-Host "Continue with replacement? (yes/no)"
-                    if ($response -ne "yes" -and $response -ne "y") {
-                        Write-Warning "Installation cancelled by user"
-                        return
-                    }
-                    Write-Info "Proceeding with installation of $Year NI Tools..."
-                } elseif ($installedYear -eq $Year) {
-                    Write-Success "NI FRC Game Tools $Year is already installed"
-                    return
-                }
+            if ($installedPackages -match "ni-frc-(\d{4})-game-tools") {
+                $installedYear = $Matches[1]
+                Write-Info "Found NI FRC Game Tools $installedYear"
             }
+        }
+    }
+
+    # If we found an installed version, check for conflicts
+    if ($installedYear) {
+        if ($installedYear -ne $Year) {
+            Write-Warning "================================================"
+            Write-Warning "NI FRC Game Tools YEAR CONFLICT DETECTED"
+            Write-Warning "================================================"
+            Write-Warning "Currently installed: $installedYear"
+            Write-Warning "Requested installation: $Year"
+            Write-Warning ""
+            Write-Warning "NI FRC Game Tools only supports ONE year at a time."
+            Write-Warning "Installing $Year will REPLACE the existing $installedYear installation."
+            Write-Warning ""
+
+            $response = Read-Host "Continue with replacement? (yes/no)"
+            if ($response -ne "yes" -and $response -ne "y") {
+                Write-Warning "Installation cancelled by user"
+                return
+            }
+            Write-Info "Proceeding with installation of $Year NI Tools..."
+        } else {
+            Write-Success "NI FRC Game Tools $Year is already installed"
+            return
         }
     }
 
