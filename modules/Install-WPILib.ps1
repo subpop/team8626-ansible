@@ -8,7 +8,8 @@
 
 param(
     [switch]$CleanupInstallers = $true,
-    [switch]$Standalone
+    [switch]$Standalone,
+    [string]$Year
 )
 
 # Import shared modules
@@ -23,16 +24,25 @@ $modulePath = $PSScriptRoot
 function Install-WPILib {
     param(
         [string]$Step = "1/1",
-        [bool]$Cleanup = $true
+        [bool]$Cleanup = $true,
+        [string]$Year = $null
     )
-    
+
     Write-Step $Step "Installing WPILib..."
 
-    $wpilibPath = Join-Path $FRCConfig.WPILibInstallPath $FRCConfig.Year
+    # Resolve year (use parameter, fall back to config)
+    if (-not $Year) {
+        $Year = $FRCConfig.Year
+    }
+
+    # Get year-specific configuration
+    $yearConfig = Get-FRCYearConfig -Year $Year
+
+    $wpilibPath = Join-Path $FRCConfig.WPILibInstallPath $Year
     if (Test-Path $wpilibPath) {
-        Write-Success "WPILib $($FRCConfig.Year) is already installed"
+        Write-Success "WPILib $Year is already installed"
         $vscodeExe = Join-Path $wpilibPath "vscode\Code.exe"
-        New-DesktopShortcut -TargetPath $vscodeExe -ShortcutName "WPILib VS Code $($FRCConfig.Year)" -Description "WPILib VS Code $($FRCConfig.Year) - FRC Development Environment"
+        New-DesktopShortcut -TargetPath $vscodeExe -ShortcutName "WPILib VS Code $Year" -Description "WPILib VS Code $Year - FRC Development Environment"
         return
     }
 
@@ -46,8 +56,8 @@ function Install-WPILib {
     if ($release) {
         $version = $release.tag_name -replace '^v', ''
     } else {
-        Write-Warning "Could not fetch latest version, using default"
-        $version = "2026.1.1"
+        Write-Warning "Could not fetch latest version, using fallback"
+        $version = $yearConfig.WPILibFallbackVersion
     }
 
     # Download from WPILib packages server (not GitHub releases)
@@ -82,7 +92,7 @@ function Install-WPILib {
 
     # Create desktop shortcut
     $vscodeExe = Join-Path $wpilibPath "vscode\Code.exe"
-    New-DesktopShortcut -TargetPath $vscodeExe -ShortcutName "WPILib VS Code $($FRCConfig.Year)" -Description "WPILib VS Code $($FRCConfig.Year) - FRC Development Environment"
+    New-DesktopShortcut -TargetPath $vscodeExe -ShortcutName "WPILib VS Code $Year" -Description "WPILib VS Code $Year - FRC Development Environment"
 
     # Cleanup
     if ($Cleanup) {
@@ -100,12 +110,13 @@ $isStandalone = $MyInvocation.InvocationName -notin @(".", "&") -or $Standalone
 
 if ($isStandalone) {
     Write-Banner "FRC Team 8626 - WPILib Installer"
-    
-    Install-WPILib -Step "1/1" -Cleanup $CleanupInstallers
-    
+
+    $installYear = if ($Year) { $Year } else { $FRCConfig.Year }
+    Install-WPILib -Step "1/1" -Cleanup $CleanupInstallers -Year $installYear
+
     Write-Banner "Installation Complete!"
     Write-Host "Installed:" -ForegroundColor White
-    Write-Host "  - WPILib VS Code $($FRCConfig.Year)" -ForegroundColor Green
+    Write-Host "  - WPILib VS Code $installYear" -ForegroundColor Green
     Write-Host "  - Desktop shortcut created" -ForegroundColor Green
 }
 

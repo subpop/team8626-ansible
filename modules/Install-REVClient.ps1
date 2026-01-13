@@ -8,7 +8,8 @@
 
 param(
     [switch]$CleanupInstallers = $true,
-    [switch]$Standalone
+    [switch]$Standalone,
+    [string]$Year
 )
 
 # Import shared modules
@@ -23,10 +24,19 @@ $modulePath = $PSScriptRoot
 function Install-REVClient {
     param(
         [string]$Step = "1/1",
-        [bool]$Cleanup = $true
+        [bool]$Cleanup = $true,
+        [string]$Year = $null
     )
-    
-    Write-Step $Step "Installing REV Hardware Client..."
+
+    # Resolve year (use parameter, fall back to config)
+    if (-not $Year) {
+        $Year = $FRCConfig.Year
+    }
+
+    # Get year-specific configuration
+    $yearConfig = Get-FRCYearConfig -Year $Year
+
+    Write-Step $Step "Installing REV Hardware Client (for $Year season)..."
 
     # Check if already installed
     $revExe = Join-Path $FRCConfig.REVInstallPath "REV Hardware Client.exe"
@@ -76,12 +86,13 @@ $isStandalone = $MyInvocation.InvocationName -notin @(".", "&") -or $Standalone
 
 if ($isStandalone) {
     Write-Banner "FRC Team 8626 - REV Hardware Client Installer"
-    
-    Install-REVClient -Step "1/1" -Cleanup $CleanupInstallers
-    
+
+    $installYear = if ($Year) { $Year } else { $FRCConfig.Year }
+    Install-REVClient -Step "1/1" -Cleanup $CleanupInstallers -Year $installYear
+
     Write-Banner "Installation Complete!"
     Write-Host "Installed:" -ForegroundColor White
-    Write-Host "  - REV Hardware Client" -ForegroundColor Green
+    Write-Host "  - REV Hardware Client (FRC $installYear)" -ForegroundColor Green
     Write-Host "  - Desktop shortcut created" -ForegroundColor Green
 }
 

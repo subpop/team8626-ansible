@@ -90,8 +90,68 @@ function Test-IsStandaloneExecution {
     # When dot-sourced, InvocationName is "." or "&"
     $invocationName = $MyInvocation.PSCommandPath
     $scriptName = $MyInvocation.MyCommand.Path
-    
+
     # Alternative check: if the script has no parent scope with the same functions loaded
     return $MyInvocation.InvocationName -notin @(".", "&")
 }
+
+# ============================================================================
+# Year Configuration Helper Functions
+# ============================================================================
+
+function Get-InstalledNIToolsYear {
+    <#
+    .SYNOPSIS
+    Detects the currently installed NI FRC Game Tools year
+
+    .DESCRIPTION
+    Queries the NI Package Manager to determine which year of FRC Game Tools is installed
+
+    .OUTPUTS
+    String containing the year (e.g., "2026"), or $null if not installed
+    #>
+
+    $nipmRegPath = "HKLM:\SOFTWARE\National Instruments\NI Package Manager"
+    $nipmReg = Get-ItemProperty $nipmRegPath -ErrorAction SilentlyContinue
+
+    if ($nipmReg -and $nipmReg.Path) {
+        $nipkgExe = Join-Path $nipmReg.Path "nipkg.exe"
+        if (Test-Path $nipkgExe) {
+            $installedPackages = & $nipkgExe list "ni-frc-*-game-tools" 2>$null
+            if ($installedPackages -match "ni-frc-(\d{4})-game-tools") {
+                return $Matches[1]
+            }
+        }
+    }
+
+    return $null
+}
+
+function Get-InstalledWPILibYears {
+    <#
+    .SYNOPSIS
+    Gets a list of all installed WPILib years
+
+    .DESCRIPTION
+    Scans the WPILib installation directory for installed year folders
+
+    .OUTPUTS
+    Array of strings containing installed years (e.g., @("2025", "2026"))
+    #>
+
+    $wpilibBasePath = "C:\Users\Public\wpilib"
+    if (-not (Test-Path $wpilibBasePath)) {
+        return @()
+    }
+
+    $yearFolders = Get-ChildItem -Path $wpilibBasePath -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^\d{4}$' } |
+        Select-Object -ExpandProperty Name
+
+    return $yearFolders
+}
+
+# Export for use in other scripts
+$global:Get-InstalledNIToolsYear = ${function:Get-InstalledNIToolsYear}
+$global:Get-InstalledWPILibYears = ${function:Get-InstalledWPILibYears}
 

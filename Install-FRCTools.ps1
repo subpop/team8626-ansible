@@ -12,6 +12,7 @@
 #Requires -RunAsAdministrator
 
 param(
+    [string]$Year,
     [switch]$SkipChocolatey,
     [switch]$SkipChrome,
     [switch]$SkipNITools,
@@ -56,6 +57,26 @@ $modulePath = Join-Path $PSScriptRoot "modules"
 . "$modulePath\Install-RpiImager.ps1"
 . "$modulePath\Install-Bookmarks.ps1"
 . "$modulePath\Install-Wallpaper.ps1"
+
+# ============================================================================
+# Year Configuration
+# ============================================================================
+
+# If no year specified, use default from config
+if (-not $Year) {
+    $Year = $FRCConfig.Year
+    Write-Host "Using default year: $Year" -ForegroundColor Cyan
+} else {
+    # Validate year is supported
+    $yearConfig = Get-FRCYearConfig -Year $Year
+    if ($yearConfig) {
+        # Update FRCConfig with selected year
+        $FRCConfig.Year = $Year
+        $FRCConfig.NIToolsUrl = $yearConfig.NIToolsUrl
+        $FRCConfig.REVClientUrl = $yearConfig.REVClientUrl
+        Write-Host "Installing FRC tools for year: $Year" -ForegroundColor Cyan
+    }
+}
 
 # ============================================================================
 # Windows Configuration
@@ -197,10 +218,10 @@ if ($onlyMode) {
         Install-CommonPackages -Step "2/2"
     }
     if ($OnlyChrome) { Install-Chrome -Step "1/1" }
-    if ($OnlyNITools) { Install-NIGameTools -Step "1/1" -Cleanup $CleanupInstallers }
-    if ($OnlyREVClient) { Install-REVClient -Step "1/1" -Cleanup $CleanupInstallers }
+    if ($OnlyNITools) { Install-NIGameTools -Step "1/1" -Cleanup $CleanupInstallers -Year $Year }
+    if ($OnlyREVClient) { Install-REVClient -Step "1/1" -Cleanup $CleanupInstallers -Year $Year }
     if ($OnlyPhoenix) { Install-PhoenixTunerX -Step "1/1" }
-    if ($OnlyWPILib) { Install-WPILib -Step "1/1" -Cleanup $CleanupInstallers }
+    if ($OnlyWPILib) { Install-WPILib -Step "1/1" -Cleanup $CleanupInstallers -Year $Year }
     if ($OnlyPathPlanner) { Install-PathPlanner -Step "1/1" }
     if ($OnlyRpiImager) { Install-RpiImager -Step "1/1" }
     if ($OnlyBookmarks) { 
@@ -213,10 +234,10 @@ if ($onlyMode) {
     if (-not $SkipChocolatey) { Install-Chocolatey -Step "1/11" }
     if (-not $SkipChocolatey) { Install-CommonPackages -Step "2/11" }
     if (-not $SkipChrome) { Install-Chrome -Step "3/11" }
-    if (-not $SkipNITools) { Install-NIGameTools -Step "4/11" -Cleanup $CleanupInstallers }
-    if (-not $SkipREVClient) { Install-REVClient -Step "5/11" -Cleanup $CleanupInstallers }
+    if (-not $SkipNITools) { Install-NIGameTools -Step "4/11" -Cleanup $CleanupInstallers -Year $Year }
+    if (-not $SkipREVClient) { Install-REVClient -Step "5/11" -Cleanup $CleanupInstallers -Year $Year }
     if (-not $SkipPhoenix) { Install-PhoenixTunerX -Step "6/11" }
-    if (-not $SkipWPILib) { Install-WPILib -Step "7/11" -Cleanup $CleanupInstallers }
+    if (-not $SkipWPILib) { Install-WPILib -Step "7/11" -Cleanup $CleanupInstallers -Year $Year }
     if (-not $SkipPathPlanner) { Install-PathPlanner -Step "8/11" }
     if (-not $SkipRpiImager) { Install-RpiImager -Step "9/11" }
     if (-not $SkipBookmarks) { 
@@ -233,12 +254,12 @@ $rebootRequired = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVer
 
 Write-Banner "Installation Complete!"
 
-Write-Host "Installed software:" -ForegroundColor White
+Write-Host "Installed FRC $Year software:" -ForegroundColor White
 Write-Host "  - Google Chrome" -ForegroundColor Green
-Write-Host "  - NI FRC Game Tools" -ForegroundColor Green
-Write-Host "  - REV Hardware Client" -ForegroundColor Green
+Write-Host "  - NI FRC Game Tools $Year" -ForegroundColor Green
+Write-Host "  - REV Hardware Client (FRC $Year)" -ForegroundColor Green
 Write-Host "  - Phoenix Tuner X" -ForegroundColor Green
-Write-Host "  - WPILib VS Code" -ForegroundColor Green
+Write-Host "  - WPILib VS Code $Year" -ForegroundColor Green
 Write-Host "  - PathPlanner" -ForegroundColor Green
 Write-Host "  - Raspberry Pi Imager" -ForegroundColor Green
 Write-Host "  - FRC Browser Bookmarks" -ForegroundColor Green

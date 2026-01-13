@@ -8,6 +8,29 @@ if ($script:FRCConfigLoaded) { return }
 $script:FRCConfigLoaded = $true
 
 # ============================================================================
+# Year-Specific Configuration Database
+# ============================================================================
+
+# Define supported years and their tool versions/URLs
+$script:FRCYearConfigs = @{
+    "2026" = @{
+        NIToolsUrl = "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2026-game-tools/26.0/online/ni-frc-2026-game-tools_26.0_online.exe"
+        REVClientUrl = "https://github.com/REVrobotics/REV-Software-Binaries/releases/download/rhc-1.7.5/REV-Hardware-Client-Setup-1.7.5-offline-FRC-2025-03-18.exe"
+        WPILibFallbackVersion = "2026.1.1"
+        NIToolsVersion = "26.0"
+    }
+    "2025" = @{
+        NIToolsUrl = "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2025-game-tools/25.0/online/ni-frc-2025-game-tools_25.0_online.exe"
+        REVClientUrl = "https://github.com/REVrobotics/REV-Software-Binaries/releases/download/rhc-1.7.5/REV-Hardware-Client-Setup-1.7.5-offline-FRC-2025-03-18.exe"
+        WPILibFallbackVersion = "2025.3.2"
+        NIToolsVersion = "25.0"
+    }
+}
+
+# Default year (used when no -Year parameter is specified)
+$script:DefaultYear = "2026"
+
+# ============================================================================
 # Configuration
 # ============================================================================
 
@@ -15,12 +38,15 @@ $script:FRCConfig = @{
     # Temp directory for downloads
     TempPath = "C:\Temp\FRC_Downloads"
 
-    # FRC Season Year
-    Year = "2026"
+    # Current FRC Season Year (default)
+    Year = $script:DefaultYear
 
-    # NI FRC Game Tools
+    # Year configuration lookup
+    YearConfigs = $script:FRCYearConfigs
+
+    # NI FRC Game Tools (defaults to current year)
     # Update URL each season from: https://www.ni.com/en/support/downloads/drivers/download.frc-game-tools.html
-    NIToolsUrl = "https://download.ni.com/support/nipkg/products/ni-f/ni-frc-2026-game-tools/26.0/online/ni-frc-2026-game-tools_26.0_online.exe"
+    NIToolsUrl = $script:FRCYearConfigs[$script:DefaultYear].NIToolsUrl
 
     # WPILib (uses GitHub API for latest)
     WPILibInstallPath = "C:\Users\Public\wpilib"
@@ -28,9 +54,9 @@ $script:FRCConfig = @{
     # Phoenix Tuner X
     PhoenixInstallPath = "C:\Program Files (x86)\CTRE\Phoenix Tuner X"
 
-    # REV Hardware Client
+    # REV Hardware Client (defaults to current year)
     # Update URL from: https://github.com/REVrobotics/REV-Software-Binaries/releases
-    REVClientUrl = "https://github.com/REVrobotics/REV-Software-Binaries/releases/download/rhc-1.7.5/REV-Hardware-Client-Setup-1.7.5-offline-FRC-2025-03-18.exe"
+    REVClientUrl = $script:FRCYearConfigs[$script:DefaultYear].REVClientUrl
     REVInstallPath = "C:\Program Files\REV Robotics\REV Hardware Client"
 
     # PathPlanner
@@ -61,6 +87,33 @@ $script:FRCConfig = @{
     )
 }
 
+# ============================================================================
+# Helper Function to Get Year-Specific Configuration
+# ============================================================================
+
+function Get-FRCYearConfig {
+    <#
+    .SYNOPSIS
+    Retrieves configuration for a specific FRC year
+
+    .PARAMETER Year
+    The FRC year (e.g., "2026", "2025")
+
+    .OUTPUTS
+    Hashtable containing year-specific configuration (URLs, versions, etc.)
+    #>
+    param([string]$Year)
+
+    if (-not $script:FRCYearConfigs.ContainsKey($Year)) {
+        Write-Warning "Year $Year is not configured. Supported years: $($script:FRCYearConfigs.Keys -join ', ')"
+        Write-Warning "Using default year: $script:DefaultYear"
+        $Year = $script:DefaultYear
+    }
+
+    return $script:FRCYearConfigs[$Year]
+}
+
 # Export for use in other scripts
 $global:FRCConfig = $script:FRCConfig
+$global:Get-FRCYearConfig = ${function:Get-FRCYearConfig}
 
