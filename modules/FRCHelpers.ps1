@@ -11,22 +11,22 @@ $script:FRCHelpersLoaded = $true
 # Output Helper Functions
 # ============================================================================
 
-function Write-Step {
+function global:Write-Step {
     param([string]$Step, [string]$Message)
     Write-Host "[$Step] $Message" -ForegroundColor Yellow
 }
 
-function Write-Success {
+function global:Write-Success {
     param([string]$Message)
     Write-Host "  $Message" -ForegroundColor Green
 }
 
-function Write-Info {
+function global:Write-Info {
     param([string]$Message)
     Write-Host "  $Message" -ForegroundColor Gray
 }
 
-function Write-Banner {
+function global:Write-Banner {
     param([string]$Message)
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Cyan
@@ -39,12 +39,12 @@ function Write-Banner {
 # Utility Functions
 # ============================================================================
 
-function Test-CommandExists {
+function global:Test-CommandExists {
     param([string]$Command)
     $null -ne (Get-Command $Command -ErrorAction SilentlyContinue)
 }
 
-function New-DesktopShortcut {
+function global:New-DesktopShortcut {
     param(
         [string]$TargetPath,
         [string]$ShortcutName,
@@ -66,7 +66,7 @@ function New-DesktopShortcut {
     }
 }
 
-function Get-GitHubLatestRelease {
+function global:Get-GitHubLatestRelease {
     param([string]$Repo)
 
     $url = "https://api.github.com/repos/$Repo/releases/latest"
@@ -79,13 +79,13 @@ function Get-GitHubLatestRelease {
     }
 }
 
-function Ensure-TempDirectory {
+function global:Ensure-TempDirectory {
     if (-not (Test-Path $FRCConfig.TempPath)) {
         New-Item -ItemType Directory -Path $FRCConfig.TempPath -Force | Out-Null
     }
 }
 
-function Test-IsStandaloneExecution {
+function global:Test-IsStandaloneExecution {
     # Check if the script is being run directly (not dot-sourced)
     # When dot-sourced, InvocationName is "." or "&"
     $invocationName = $MyInvocation.PSCommandPath
@@ -99,7 +99,7 @@ function Test-IsStandaloneExecution {
 # Year Configuration Helper Functions
 # ============================================================================
 
-function Get-InstalledNIToolsYear {
+function global:Get-InstalledNIToolsYear {
     <#
     .SYNOPSIS
     Detects the currently installed NI FRC Game Tools year
@@ -127,7 +127,7 @@ function Get-InstalledNIToolsYear {
     return $null
 }
 
-function Get-InstalledWPILibYears {
+function global:Get-InstalledWPILibYears {
     <#
     .SYNOPSIS
     Gets a list of all installed WPILib years
@@ -150,17 +150,4 @@ function Get-InstalledWPILibYears {
 
     return $yearFolders
 }
-
-# Export for use in other scripts
-$global:Write-Step = ${function:Write-Step}
-$global:Write-Success = ${function:Write-Success}
-$global:Write-Info = ${function:Write-Info}
-$global:Write-Banner = ${function:Write-Banner}
-$global:Test-CommandExists = ${function:Test-CommandExists}
-$global:New-DesktopShortcut = ${function:New-DesktopShortcut}
-$global:Get-GitHubLatestRelease = ${function:Get-GitHubLatestRelease}
-$global:Ensure-TempDirectory = ${function:Ensure-TempDirectory}
-$global:Test-IsStandaloneExecution = ${function:Test-IsStandaloneExecution}
-$global:Get-InstalledNIToolsYear = ${function:Get-InstalledNIToolsYear}
-$global:Get-InstalledWPILibYears = ${function:Get-InstalledWPILibYears}
 
